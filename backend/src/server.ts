@@ -3,15 +3,24 @@ import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 import dotenv from "dotenv";
+import healthRoutes from "./routes/health.routes";
+import authRoutes from "./routes/auth.routes";
+import dbRoutes from "./routes/db.routes";
+import incidentRoutes from "./routes/incident.routes";
+import userRoutes from "./routes/user.routes";
+import auditRoutes from "./routes/audit.routes";
 
 dotenv.config();
 
 const app = express();
 
+app.disable("x-powered-by");
+app.set("trust proxy", 1);
+
 /**
  * Environment validation
  */
-const PORT = process.env.PORT || 5000;
+const PORT = Number(process.env.PORT) || 5000;
 const NODE_ENV = process.env.NODE_ENV || "development";
 
 /**
@@ -23,8 +32,8 @@ app.use(
     origin:
       NODE_ENV === "production"
         ? ["https://your-frontend-domain.com"]
-        : "*",
-    methods: ["GET", "POST", "PUT", "DELETE"],
+        : "http://localhost:3000",
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     credentials: true,
   })
 );
@@ -50,14 +59,21 @@ app.use(morgan(NODE_ENV === "production" ? "combined" : "dev"));
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 
+app.use("/health", healthRoutes);
+app.use("/auth", authRoutes);
+app.use("/incidents", incidentRoutes);
+app.use("/db-test", dbRoutes);
+app.use("/user", userRoutes);
+app.use("/audit", auditRoutes);
+
 /**
  * Health check route
  */
 app.get("/", (req: Request, res: Response) => {
   res.status(200).json({
     success: true,
-    message: "SentinelAI Backend Running",
-    environment: NODE_ENV,
+    message: "Sentinel-AI Backend Running",
+    //environment: NODE_ENV,
   });
 });
 
@@ -81,7 +97,7 @@ app.use(
     res: Response,
     next: NextFunction
   ) => {
-    console.error(err.stack);
+    console.error("[ERROR]", err.message);
 
     res.status(500).json({
       success: false,
@@ -93,11 +109,6 @@ app.use(
   }
 );
 
-/**
- * Disable X-Powered-By header
- * Prevent Express fingerprinting
- */
-app.disable("x-powered-by");
 
 /**
  * Start server
