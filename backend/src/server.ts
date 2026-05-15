@@ -9,6 +9,8 @@ import dbRoutes from "./routes/db.routes";
 import incidentRoutes from "./routes/incident.routes";
 import userRoutes from "./routes/user.routes";
 import auditRoutes from "./routes/audit.routes";
+import swaggerUi from "swagger-ui-express";
+import swaggerSpec from "./config/swagger";
 
 dotenv.config();
 
@@ -59,6 +61,7 @@ app.use(morgan(NODE_ENV === "production" ? "combined" : "dev"));
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 
+
 app.use("/health", healthRoutes);
 app.use("/auth", authRoutes);
 app.use("/incidents", incidentRoutes);
@@ -66,6 +69,23 @@ app.use("/db-test", dbRoutes);
 app.use("/user", userRoutes);
 app.use("/audit", auditRoutes);
 
+/**
+ * Swagger Doc
+ */
+app.use(
+  "/api-docs",
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerSpec, {
+  explorer: true,
+  customSiteTitle: "Sentinel-AI Docs",
+  swaggerOptions: {
+    docExpansion: "list",
+    filter: true,
+    tagsSorter: "alpha",
+    operationsSorter: "alpha",
+  },
+})
+);
 /**
  * Health check route
  */
@@ -76,6 +96,13 @@ app.get("/", (req: Request, res: Response) => {
     //environment: NODE_ENV,
   });
 });
+
+app.get(
+  "/api-docs.json",
+  (_, res) => {
+    res.json(swaggerSpec);
+  }
+);
 
 /**
  * 404 handler
