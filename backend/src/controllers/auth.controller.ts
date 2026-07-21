@@ -1,318 +1,233 @@
-import { Request, Response, NextFunction } from "express";
-import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
+import {
+  Request,
+  Response,
+  NextFunction,
+} from "express";
+
+import { Role } from "@prisma/client";
+
+import {
+  hashPassword,
+  comparePassword,
+  generateToken,
+} from "../services/auth.service";
 
 import prisma from "../config/prisma";
-import { normalize } from "node:path";
+
+import {
+  createAuditLog,
+} from "../utils/auditLogger";
 
 /**
- * Validate JWT secret at startup
+ * Register Controller
  */
-const JWT_SECRET = process.env.JWT_SECRET;
-
-if (!JWT_SECRET) {
-  throw new Error("JWT_SECRET is missing");
-}
-
 export const register = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    const { email, password, role } = req.body;
-
     /**
-     * Validate input types
+     * Extract validated body
      */
-    if (
-      typeof email !== "string" ||
-      typeof password !== "string"
-    ) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid input types",
-      });
-    }
-
-    /**
-     * Basic validation
-     */
-    if (!email.trim() || !password.trim()) {
-      return res.status(400).json({
-        success: false,
-        message: "Email and password are required",
-      });
-    }
+    const {
+      email,
+      password,
+    } = req.body;
 
     /**
      * Normalize email
      */
-    const normalizedEmail = email.trim().toLowerCase();
-    const normalizedPassword = password.trim();
-
-    /**
-     * Gmail validation
-     */
-    const gmailRegex =
-     /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
-
-    if (!gmailRegex.test(normalizedEmail)) {
-        return res.status(400).json({
-        success: false,
-        message: "Only Gmail accounts are allowed",
-  });
-}
-
-    /**
-     * Strong Password policy
-     */
-    const passwordRegex =
-        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-
-    if (!passwordRegex.test(normalizedPassword)) {
-        return res.status(400).json({
-        success: false,
-        message:
-            "Password must contain uppercase, lowercase, number, special character and minimum 8 characters",
-  });
-}
-
-/**
- * Allowed roles
- */
-const allowedRoles = [
-  "ADMIN",
-  "ANALYST",
-  "VIEWER",
-];
-
-/**
- * Normalize role
- */
-if (
-  role !== undefined &&
-  typeof role !== "string"
-) {
-  return res.status(400).json({
-    success: false,
-    message: "Invalid role type",
-  });
-}
-
-const normalizedRole =
-  role?.trim().toUpperCase() ||
-  "VIEWER";
-
-/**
- * Validate role
- */
-if (
-  !allowedRoles.includes(
-    normalizedRole
-  )
-) {
-  return res.status(400).json({
-    success: false,
-    message: "Invalid role",
-  });
-}
+    const normalizedEmail =
+      email.toLowerCase();
 
     /**
      * Check existing user
      */
-    // await bcrypt.hash(normalizedPassword, 1);
+    const existingUser =
+      await prisma.user.findUnique({
+        where: {
+          email:
+            normalizedEmail,
+        },
+      });
 
-    const existingUser = await prisma.user.findUnique({
-      where: {
-        email: normalizedEmail,
-      },
-    });
-
+    /**
+     * Prevent duplicate accounts
+     */
     if (existingUser) {
       return res.status(409).json({
         success: false,
-        message: "Registration failed",
+        message:
+          "Registration failed",
       });
     }
 
     /**
      * Hash password
      */
-    const hashedPassword = await bcrypt.hash(
-      normalizedPassword,
-      10
+    const hashedPassword =
+      await hashPassword(
+        password
     );
 
     /**
      * Create user
      */
-    const user = await prisma.user.create({
-      data: {
-        email: normalizedEmail,
-        password: hashedPassword,
-        role: normalizedRole,
-      },
-    });
+    const user =
+      await prisma.user.create({
+        data: {
+          email:
+            normalizedEmail,
+          password:
+            hashedPassword,
+          role: Role.VIEWER,
+        },
+      });
 
     /**
-     * Generate JWT token
+     * Generate JWT
      */
-    const token = jwt.sign(
-      {
-        userId: user.id,
-        role: (user as any).role
-        // role: user.role,
-      },
-      JWT_SECRET,
-      {
-        expiresIn: "7d",
-      }
+    const token =
+    generateToken(
+      user.id,
+      user.email,
+      user.role,
     );
+
+    /**
+     * Create audit log
+     */
+    createAuditLog(
+      "USER_REGISTERED",
+      user.id
+    ).catch(console.error);
 
     /**
      * Success response
      */
     return res.status(201).json({
       success: true,
-      message: "User registered successfully",
+      message:
+        "User registered successfully",
       token,
       user: {
         id: user.id,
         email: user.email,
-        role: (user as any).role
-        // role: user.role,
+        role: user.role,
+        createdAt:
+          user.createdAt,
       },
     });
   } catch (error) {
-    
-    // console.error("[REGISTER_ERROR]", error);
     console.error(
-        "[REGISTER_ERROR]",
-        error instanceof Error
-            ? error.message
-            : "Unknown error"
+      "[REGISTER_ERROR]",
+      error instanceof Error
+        ? error.message
+        : "Unknown error"
     );
+
     next(error);
   }
 };
 
+/**
+ * Login Controller
+ */
 export const login = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    const { email, password } = req.body;
-
     /**
-     * Validate input types
+     * Extract validated body
      */
-    if (
-      typeof email !== "string" ||
-      typeof password !== "string"
-    ) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid input types",
-      });
-    }
+    const {
+      email,
+      password,
+    } = req.body;
 
     /**
-     * Basic validation
-     */
-    if (!email.trim() || !password.trim()) {
-      return res.status(400).json({
-        success: false,
-        message: "Email and password are required",
-      });
-    }
-
-    /**
-     * Normalize credentials
+     * Normalize email
      */
     const normalizedEmail =
-      email.trim().toLowerCase();
-
-    const normalizedPassword =
-      password.trim();
-
-    /**
-     * Gmail validation
-     */
-    const gmailRegex =
-      /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
-
-    if (!gmailRegex.test(normalizedEmail)) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "Only Gmail accounts are allowed",
-      });
-    }
+      email.toLowerCase();
 
     /**
      * Find user
      */
-    const user = await prisma.user.findUnique({
-      where: {
-        email: normalizedEmail,
-      },
-    });
+    const user =
+      await prisma.user.findUnique({
+        where: {
+          email:
+            normalizedEmail,
+        },
+      });
 
     /**
-     * Invalid credentials
+     * Prevent user enumeration
      */
     if (!user) {
       return res.status(401).json({
         success: false,
-        message: "Invalid credentials",
+        message:
+          "Invalid credentials",
       });
     }
 
     /**
-     * Compare password
+     * Verify password
      */
     const isPasswordValid =
-      await bcrypt.compare(
-        normalizedPassword,
-        user.password
-      );
+    await comparePassword(
+      password,
+      user.password
+    );
 
+    /**
+     * Invalid password
+     */
     if (!isPasswordValid) {
       return res.status(401).json({
         success: false,
-        message: "Invalid credentials",
+        message:
+          "Invalid credentials",
       });
     }
 
     /**
      * Generate JWT
      */
-    const token = jwt.sign(
-      {
-        userId: user.id,
-        role: (user as any).role
-        // role: user.role
-      },
-      JWT_SECRET,
-      {
-        expiresIn: "7d",
-      }
+    const token =
+    generateToken(
+      user.id,
+      user.email,
+      user.role,
     );
+
+    /**
+     * Create audit log
+     */
+    createAuditLog(
+      "USER_LOGIN",
+      user.id
+    ).catch(console.error);
 
     /**
      * Success response
      */
     return res.status(200).json({
       success: true,
-      message: "Login successful",
+      message:
+        "Login successful",
       token,
       user: {
         id: user.id,
         email: user.email,
-        role: (user as any).role
-        // role: user.role,
+        role: user.role,
+        createdAt:
+          user.createdAt,
       },
     });
   } catch (error) {

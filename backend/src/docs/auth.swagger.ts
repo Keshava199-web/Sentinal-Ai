@@ -21,17 +21,14 @@
  *             required:
  *               - email
  *               - password
- *               - role
  *             properties:
  *               email:
  *                 type: string
  *                 example: admin@gmail.com
  *               password:
  *                 type: string
- *                 example: Admin@123
- *               role:
- *                 type: string
- *                 example: ADMIN
+ *                 example: Str0NGpAss@123
+ *               
  *     responses:
  *       201:
  *         description: User registered successfully

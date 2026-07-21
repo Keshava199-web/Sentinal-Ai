@@ -11,8 +11,8 @@ model User {
   id        String   @id @default(uuid())
   email     String   @unique
   password  String
-  role      String   @default("VIEWER")
   createdAt DateTime @default(now())
+  role      Role     @default(VIEWER)
 }
 
 model Incident {
@@ -24,10 +24,17 @@ model Incident {
   status      String   @default("OPEN")
   createdAt   DateTime @default(now())
 }
+
 model AuditLog {
   id         String   @id @default(uuid())
   action     String
   userId     String
   incidentId String?
   createdAt  DateTime @default(now())
+}
+
+enum Role {
+  VIEWER
+  ANALYST
+  ADMIN
 }

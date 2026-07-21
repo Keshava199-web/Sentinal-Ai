@@ -1,11 +1,14 @@
-import { Router } from "express";
+import { Router, Request, Response } from "express";
 
 const router = Router();
 
-router.get("/", (req, res) => {
-  res.status(200).json({
+router.get("/", (_req: Request, res: Response) => {
+  return res.status(200).json({
     success: true,
-    message: "API Healthy",
+    status: "OK",
+    service: "Sentinel-AI Backend",
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
   });
 });
 

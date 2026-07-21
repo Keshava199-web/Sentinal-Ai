@@ -5,7 +5,7 @@ const router = Router();
 
 router.get(
   "/",
-  async (req: Request, res: Response, next: NextFunction) => {
+  async (_req: Request, res: Response, next: NextFunction) => {
     try {
       const users = await prisma.user.findMany({
         select: {

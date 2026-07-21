@@ -16,6 +16,15 @@ import {
   authorizeRoles,
 } from "../middleware/role.middleware";
 
+import validate from "../middleware/validate.middleware";
+
+import {
+  createIncidentSchema,
+  updateIncidentSchema,
+  incidentQuerySchema,
+  incidentIdParamSchema,
+} from "../validators/incident.validator";
+
 const router = Router();
 
 /**
@@ -69,6 +78,10 @@ const router = Router();
 router.get(
   "/",
   protect,
+  validate(
+    incidentQuerySchema,
+    "query"
+  ),
   getIncidents
 );
 
@@ -96,6 +109,10 @@ router.get(
 router.get(
   "/:id",
   protect,
+   validate(
+    incidentIdParamSchema,
+    "params"
+  ),
   getIncidentById
 );
 
@@ -148,6 +165,9 @@ router.post(
     "ADMIN",
     "ANALYST"
   ),
+  validate(
+    createIncidentSchema
+  ),
   createIncident
 );
 
@@ -193,6 +213,13 @@ router.patch(
     "ADMIN",
     "ANALYST"
   ),
+  validate(
+    incidentIdParamSchema,
+    "params"
+  ),
+  validate(
+    updateIncidentSchema
+  ),
   updateIncidentStatus
 );
 
@@ -223,6 +250,10 @@ router.delete(
   "/:id",
   protect,
   authorizeRoles("ADMIN"),
+   validate(
+    incidentIdParamSchema,
+    "params"
+  ),
   deleteIncident
 );
 

@@ -1,564 +1,450 @@
 import {
-  Request,
   Response,
   NextFunction,
 } from "express";
 
-import prisma from "../config/prisma";
+// import prisma from "../config/prisma";
 
-import { createAuditLog } from "../utils/auditLogger";
-import { AuthRequest } from "../middleware/auth.middleware";
-import { Prisma } from "@prisma/client";
-    
+import { Request } from "express";
+
+import {
+  createAuditLog,
+} from "../utils/auditLogger";
+
+import {
+  createIncidentService,
+  getIncidentsService,
+  getIncidentByIdService,
+  updateIncidentStatusService,
+  deleteIncidentService,
+} from "../services/incident.service";
+
+
+/**
+ * Safely extract route param
+ */
+const getRouteParam = (
+  value: unknown
+): string | undefined => {
+  if (
+    typeof value === "string" &&
+    value.trim().length > 0
+  ) {
+    return value.trim();
+  }
+
+  return undefined;
+};
+
+/**
+ * UUID validation
+ */
+const isUuid = (
+  value: string
+): boolean => {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    value
+  );
+};
 
 /**
  * Create Incident
  */
-export const createIncident = async (
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const {
-      title,
-      description,
-      severity,
-      sourceIp,
-    } = req.body;
+export const createIncident =
+  async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      // Auth guard
+      if (!req.user) {
+        return res.status(401).json({
+          success: false,
+          message: "Unauthorized",
+        });
+      }
+      /**
+       * Extract validated body
+       */
+      const {
+        title,
+        description,
+        severity,
+        sourceIp,
+      } = req.body;
 
-    /**
-     * Validate input types
-     */
-    if (
-      typeof title !== "string" ||
-      typeof description !== "string" ||
-      typeof severity !== "string"
-    ) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid input types",
-      });
-    }
+      /**
+       * Create incident
+       */
+      const incident =
+        await createIncidentService(
+          title,
+          description,
+          severity,
+          sourceIp
+        );
 
-    /**
-     * Normalize inputs
-     */
-    const normalizedTitle =
-      title.trim();
-
-    const normalizedDescription =
-      description.trim();
-
-    const normalizedSeverity =
-      severity.trim().toUpperCase();
-
-    const normalizedSourceIp =
-      typeof sourceIp === "string"
-        ? sourceIp.trim()
-        : undefined;
-
-    /**
-     * Basic validation
-     */
-    if (
-      !normalizedTitle ||
-      !normalizedDescription ||
-      !normalizedSeverity
-    ) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "Title, description and severity are required",
-      });
-    }
-
-    /**
-     * Title length validation
-     */
-    if (normalizedTitle.length > 120) {
-      return res.status(400).json({
-        success: false,
-        message: "Title too long",
-      });
-    }
-
-    /**
-     * Description length validation
-     */
-    if (
-      normalizedDescription.length > 5000
-    ) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "Description too long",
-      });
-    }
-
-    /**
-     * Allowed severity values
-     */
-    const allowedSeverities = [
-      "LOW",
-      "MEDIUM",
-      "HIGH",
-      "CRITICAL",
-    ];
-
-    /**
-     * Validate severity
-     */
-    if (
-      !allowedSeverities.includes(
-        normalizedSeverity
-      )
-    ) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid severity",
-      });
-    }
-
-    /**
-     * Create incident
-     */
-    const incident =
-      await prisma.incident.create({
-        data: {
-          title: normalizedTitle,
-          description:
-            normalizedDescription,
-          severity:
-            normalizedSeverity,
-          sourceIp:
-            normalizedSourceIp,
-        },
-      });
-
-      await createAuditLog(
-        "CREATE_INCIDENT",
-        req.user!.userId,
+      /**
+       * Audit log
+       */
+      createAuditLog(
+        "INCIDENT_CREATED",
+        req.user.userId,
         incident.id
+      ).catch(console.error);
+
+      /**
+       * Success response
+       */
+      return res.status(201).json({
+        success: true,
+        message:
+          "Incident created successfully",
+        incident,
+      });
+    } catch (error) {
+      console.error(
+        "[CREATE_INCIDENT_ERROR]",
+        error instanceof Error
+          ? error.message
+          : "Unknown error"
       );
 
-    /**
-     * Success response
-     */
-    return res.status(201).json({
-      success: true,
-      message:
-        "Incident created successfully",
-      incident,
-    });
-  } catch (error) {
-    console.error(
-      "[CREATE_INCIDENT_ERROR]",
-      error instanceof Error
-        ? error.message
-        : "Unknown error"
-    );
-
-    next(error);
-  }
-};
+      next(error);
+    }
+  };
 
 /**
- * Get All Incidents
+ * Get Incidents
  */
-export const getIncidents = async (
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    /**
-     * Query params
-     */
-    const {
-      page = "1",
-      limit = "10",
-      severity,
-      status,
-      search,
-    } = req.query;
+export const getIncidents =
+  async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      // Auth Guard
+      if (!req.user) {
+        return res.status(401).json({
+          success: false,
+          message: "Unauthorized",
+        });
+    }
+      /**
+       * Query params
+       */
+      const {
+        page = "1",
+        limit = "10",
+      } = req.query;
 
-    /**
-     * Pagination
-     */
-    const parsedPage =
-      Number(page);
+      /**
+       * Safe pagination
+       */
+      const pageNumber =
+        Math.max(
+          Number(page),
+          1
+        );
 
-    const parsedLimit =
-      Number(limit);
-
-      const pageNumber = Math.max(
-        parsedPage,
-        1
-      );
-
-      const limitNumber = Math.min(
-        Math.max(parsedLimit, 1),
-        100
-      );
+      const limitNumber =
+        Math.min(
+          Math.max(
+            Number(limit),
+            1
+          ),
+          100
+        );
 
       const skip =
-        (pageNumber - 1) * limitNumber;
+        (pageNumber - 1) *
+        limitNumber;
 
-    if (
-      Number.isNaN(parsedPage) ||
-      Number.isNaN(parsedLimit)
-    ) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "Invalid pagination values",
+      /**
+       * Fetch incidents
+       */
+      const incidents =
+        await getIncidentsService(
+          skip,
+          limitNumber
+        );
+
+      /**
+       * Audit log
+       */
+      createAuditLog(
+        "VIEW_INCIDENTS",
+        req.user.userId
+      ).catch(console.error);
+
+      /**
+       * Success response
+       */
+      return res.status(200).json({
+        success: true,
+        page: pageNumber,
+        limit: limitNumber,
+        count:
+          incidents.length,
+        incidents,
       });
+    } catch (error) {
+      console.error(
+        "[GET_INCIDENTS_ERROR]",
+        error instanceof Error
+          ? error.message
+          : "Unknown error"
+      );
+
+      next(error);
     }
+  };
 
-    /**
-     * Build filters
-     */
-    const filters: Prisma.IncidentWhereInput = {};
-    
-
-    /**
-     * Severity filter
-     */
-    if (
-      typeof severity === "string"
-    ) {
-      filters.severity =
-        severity.toUpperCase();
-    }
-
-    /**
-     * Status filter
-     */
-    if (
-      typeof status === "string"
-    ) {
-      filters.status =
-        status.toUpperCase();
-    }
-
-    const normalizedSearch =
-      typeof search === "string"
-        ? search.trim()
-        : "";
-        
-    /**
-     * Search filter
-     */
-    if (
-      typeof search === "string" &&
-      search.trim()
-    ) {
-      filters.OR = [
-        {
-          title: {
-            contains: normalizedSearch,
-            mode: "insensitive",
-          },
-        },
-        {
-          description: {
-            contains: normalizedSearch,
-            mode: "insensitive",
-          },
-        },
-      ];
-    }
-
-    /**
-     * Fetch incidents
-     */
-    const incidents =
-      await prisma.incident.findMany({
-        where: filters,
-        orderBy: {
-          createdAt: "desc",
-        },
-        skip,
-        take: limitNumber,
-      });
-
-    /**
-     * Total count
-     */
-    const total =
-      await prisma.incident.count({
-        where: filters,
-      });
-
-    /**
-     * Success response
-     */
-    return res.status(200).json({
-      success: true,
-      page: pageNumber,
-      limit: limitNumber,
-      total,
-      totalPages: Math.ceil(
-        total / limitNumber
-      ),
-      count: incidents.length,
-      incidents,
-    });
-  } catch (error) {
-    console.error(
-      "[GET_INCIDENTS_ERROR]",
-      error instanceof Error
-        ? error.message
-        : "Unknown error"
-    );
-
-    next(error);
-  }
-};
 /**
- * Get Single Incident
+ * Get Incident By ID
  */
-export const getIncidentById = async (
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const { id } = req.params;
+export const getIncidentById =
+  async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      /**
+       * Extract ID
+       */
+      const id =
+        typeof req.params.id === "string"
+          ? req.params.id
+          : undefined;
 
-    /**
-     * Validate ID
-     */
-    if (!id || typeof id !== "string") {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid incident ID",
+          if (!id) {
+            return res.status(400).json({
+              success: false,
+              message: "Invalid incident ID",
+            });
+          }
+
+      /**
+       * Find incident
+       */
+      const incident =
+        await getIncidentByIdService(
+          id
+        );
+
+      /**
+       * Incident not found
+       */
+      if (!incident) {
+        return res.status(404).json({
+          success: false,
+          message:
+            "Incident not found",
+        });
+      }
+
+      /**
+       * Audit log
+       */
+      createAuditLog(
+        "VIEW_INCIDENT",
+        req.user!.userId,
+        incident.id
+      ).catch(console.error);
+
+      /**
+       * Success response
+       */
+      return res.status(200).json({
+        success: true,
+        incident,
       });
+    } catch (error) {
+      console.error(
+        "[GET_INCIDENT_ERROR]",
+        error instanceof Error
+          ? error.message
+          : "Unknown error"
+      );
+
+      next(error);
     }
-
-    /**
-     * Find incident
-     */
-    const incident =
-      await prisma.incident.findUnique({
-        where: {
-          id,
-        },
-      });
-
-    /**
-     * Incident not found
-     */
-    if (!incident) {
-      return res.status(404).json({
-        success: false,
-        message: "Incident not found",
-      });
-    }
-
-    /**
-     * Success response
-     */
-    return res.status(200).json({
-      success: true,
-      incident,
-    });
-  } catch (error) {
-    console.error(
-      "[GET_INCIDENT_BY_ID_ERROR]",
-      error instanceof Error
-        ? error.message
-        : "Unknown error"
-    );
-
-    next(error);
-  }
-};
+  };
 
 /**
  * Update Incident Status
  */
+export const updateIncidentStatus =
+  async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      /**
+       * Extract params
+       */
+      const rawId = getRouteParam(
+        req.params.id
+      );
 
-export const updateIncidentStatus = async (
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const { id } = req.params;
+      if (
+        !rawId ||
+        !isUuid(rawId)
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid incident ID",
+        });
+      }
 
-    const { status } = req.body;
+const id: string = rawId;
 
-    /**
-     * Validate ID
-     */
-    if (!id || typeof id !== "string") {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid incident ID",
+      const { status } =
+        req.body;
+
+      /**
+       * Check existing incident
+       */
+      const existingIncident =
+        await getIncidentByIdService(
+          id
+        );
+
+      /**
+       * Incident not found
+       */
+      if (!existingIncident) {
+        return res.status(404).json({
+          success: false,
+          message:
+            "Incident not found",
+        });
+      }
+
+      /**
+       * Update incident
+       */
+      const updatedIncident =
+        await updateIncidentStatusService(
+          id,
+          status
+        );
+
+      /**
+       * Audit log
+       */
+      createAuditLog(
+        "INCIDENT_UPDATED",
+        req.user!.userId,
+        updatedIncident.id
+      ).catch(console.error);
+
+      /**
+       * Success response
+       */
+      return res.status(200).json({
+        success: true,
+        message:
+          "Incident updated successfully",
+        incident:
+          updatedIncident,
       });
+    } catch (error) {
+      console.error(
+        "[UPDATE_INCIDENT_ERROR]",
+        error instanceof Error
+          ? error.message
+          : "Unknown error"
+      );
+
+      next(error);
     }
-
-    /**
-     * Validate status type
-     */
-    if (typeof status !== "string") {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid status",
-      });
-    }
-
-    /**
-     * Normalize status
-     */
-    const normalizedStatus =
-      status.trim().toUpperCase();
-
-    /**
-     * Allowed statuses
-     */
-    const allowedStatuses = [
-      "OPEN",
-      "INVESTIGATING",
-      "RESOLVED",
-      "CLOSED",
-    ];
-
-    /**
-     * Validate status
-     */
-    if (
-      !allowedStatuses.includes(
-        normalizedStatus
-      )
-    ) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid status value",
-      });
-    }
-
-    /**
-     * Check incident existence
-     */
-    const existingIncident =
-      await prisma.incident.findUnique({
-        where: { id },
-      });
-
-    if (!existingIncident) {
-      return res.status(404).json({
-        success: false,
-        message: "Incident not found",
-      });
-    }
-
-    /**
- * Update incident
- */
-const updatedIncident =
-  await prisma.incident.update({
-    where: { id },
-    data: {
-      status: normalizedStatus,
-    },
-  });
-
-await createAuditLog(
-  "UPDATE_INCIDENT_STATUS",
-  req.user!.userId,
-  id
-);
-/**
- * Success response
- */
-return res.status(200).json({
-  success: true,
-  message:
-    "Incident updated successfully",
-  incident: updatedIncident,
-});
-  } catch (error) {
-    console.error(
-      "[UPDATE_INCIDENT_STATUS_ERROR]",
-      error instanceof Error
-        ? error.message
-        : "Unknown error"
-    );
-
-    next(error);
-  }
-};
+  };
 
 /**
  * Delete Incident
  */
-export const deleteIncident = async (
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const { id } = req.params;
+export const deleteIncident =
+  async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      /**
+       * Extract ID
+       */
+      const rawId = getRouteParam(
+        req.params.id
+      );
 
-    
-    /**
-     * Validate ID
-     */
-    if (!id || typeof id !== "string") {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid incident ID",
-      });
-    }
+      if (
+        !rawId ||
+        !isUuid(rawId)
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid incident ID",
+        });
+      }
 
-    /**
-     * Check incident existence
-     */
-    const existingIncident =
-      await prisma.incident.findUnique({
-        where: { id },
-      });
+const id: string = rawId;
 
-    if (!existingIncident) {
-      return res.status(404).json({
-        success: false,
-        message: "Incident not found",
-      });
-    }
+      /**
+       * Check existing incident
+       */
+      const existingIncident =
+        await getIncidentByIdService(
+          id
+        );
 
-    /**
-     * Delete incident
-     */
-    await prisma.incident.delete({
-      where: { id },
-    });
+      /**
+       * Incident not found
+       */
+      if (!existingIncident) {
+        return res.status(404).json({
+          success: false,
+          message:
+            "Incident not found",
+        });
+      }
 
-    await createAuditLog(
-        "DELETE_INCIDENT",
+      /**
+       * Delete incident
+       */
+      await deleteIncidentService(
+        id
+      );
+
+      /**
+       * Audit log
+       */
+      createAuditLog(
+        "INCIDENT_DELETED",
         req.user!.userId,
         id
-    );
+      ).catch(console.error);
 
-    /**
-     * Success response
-     */
-    return res.status(200).json({
-      success: true,
-      message:
-        "Incident deleted successfully",
-    });
-  } catch (error) {
-    console.error(
-      "[DELETE_INCIDENT_ERROR]",
-      error instanceof Error
-        ? error.message
-        : "Unknown error"
-    );
+      /**
+       * Success response
+       */
+      return res.status(200).json({
+        success: true,
+        message:
+          "Incident deleted successfully",
+      });
+    } catch (error) {
+      console.error(
+        "[DELETE_INCIDENT_ERROR]",
+        error instanceof Error
+          ? error.message
+          : "Unknown error"
+      );
 
-    next(error);
-  }
-};
-
+      next(error);
+    }
+  };

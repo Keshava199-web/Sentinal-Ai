@@ -11,6 +11,7 @@ import userRoutes from "./routes/user.routes";
 import auditRoutes from "./routes/audit.routes";
 import swaggerUi from "swagger-ui-express";
 import swaggerSpec from "./config/swagger";
+import errorMiddleware from "./middleware/error.middleware";
 
 dotenv.config();
 
@@ -89,7 +90,7 @@ app.use(
 /**
  * Health check route
  */
-app.get("/", (req: Request, res: Response) => {
+app.get("/", (_req: Request, res: Response) => {
   res.status(200).json({
     success: true,
     message: "Sentinel-AI Backend Running",
@@ -107,7 +108,7 @@ app.get(
 /**
  * 404 handler
  */
-app.use((req: Request, res: Response) => {
+app.use((_req: Request, res: Response) => {
   res.status(404).json({
     success: false,
     message: "Route not found",
@@ -120,9 +121,9 @@ app.use((req: Request, res: Response) => {
 app.use(
   (
     err: Error,
-    req: Request,
+    _req: Request,
     res: Response,
-    next: NextFunction
+    _next: NextFunction
   ) => {
     console.error("[ERROR]", err.message);
 
@@ -143,3 +144,5 @@ app.use(
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
+app.use(errorMiddleware);

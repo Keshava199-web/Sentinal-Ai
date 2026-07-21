@@ -1,8 +1,8 @@
-import { NextFunction, Router, Response } from "express";
+import { NextFunction, Router, Response, Request } from "express";
 
 import prisma from "../config/prisma";
 
-import { AuthRequest, protect } from "../middleware/auth.middleware";
+import { protect } from "../middleware/auth.middleware";
 
 import { authorizeRoles } from "../middleware/role.middleware";
 
@@ -18,7 +18,7 @@ router.get(
   protect,
   authorizeRoles("ADMIN"),
   async (
-    req: AuthRequest,
+    req: Request,
     res: Response,
     next: NextFunction
   ) => {

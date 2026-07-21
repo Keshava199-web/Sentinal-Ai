@@ -6,6 +6,8 @@ import {
 
 import jwt from "jsonwebtoken";
 
+import { Role } from "@prisma/client";
+
 /**
  * Validate JWT secret
  */
@@ -15,20 +17,12 @@ if (!JWT_SECRET) {
   throw new Error("JWT_SECRET is missing");
 }
 
-/**
- * Extend Express Request
- */
-export interface AuthRequest extends Request {
-  user?: {
-    userId: string;
-  };
-}
 
 /**
  * JWT Authentication Middleware
  */
 export const protect = (
-  req: AuthRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ) => {
@@ -82,7 +76,9 @@ export const protect = (
     if (
       !decoded ||
       typeof decoded !== "object" ||
-      !("userId" in decoded)
+      !("userId" in decoded) ||
+      !("email" in decoded) ||
+      !("role" in decoded)
     ) {
       return res.status(401).json({
         success: false,
@@ -95,6 +91,8 @@ export const protect = (
      */
     req.user = {
       userId: String(decoded.userId),
+      email: String(decoded.email),
+      role: decoded.role as Role,
     };
 
     next();

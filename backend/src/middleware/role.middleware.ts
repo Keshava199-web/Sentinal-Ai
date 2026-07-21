@@ -4,15 +4,6 @@ import {
   NextFunction,
 } from "express";
 
-/**
- * Extended Request Type
- */
-interface AuthRequest extends Request {
-  user?: {
-    userId: string;
-    role: string;
-  };
-}
 
 /**
  * Role Authorization Middleware
@@ -20,7 +11,7 @@ interface AuthRequest extends Request {
 export const authorizeRoles =
   (...allowedRoles: string[]) =>
   (
-    req: AuthRequest,
+    req: Request,
     res: Response,
     next: NextFunction
   ) => {
