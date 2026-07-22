@@ -1,6 +1,5 @@
 import swaggerJSDoc from "swagger-jsdoc";
 
-
 /**
  * @swagger
  * tags:
@@ -75,8 +74,7 @@ const options: swaggerJSDoc.Options = {
     info: {
       title: "Sentinel-AI API",
       version: "1.0.0",
-      description:
-        "Production-style AI-SOC backend API documentation",
+      description: "Production-style AI-SOC backend API documentation",
     },
 
     servers: [
@@ -106,21 +104,14 @@ const options: swaggerJSDoc.Options = {
   /**
    * Route files for Swagger scanning
    */
-  apis: [
-    "./src/routes/*.ts",
-    "./src/routes/**/*.ts",
-    "./src/docs/*.ts",
-  ],
+  apis: ["./src/routes/*.ts", "./src/routes/**/*.ts", "./src/docs/*.ts"],
 };
 
 /**
  * Generate Swagger spec
  */
-const swaggerSpec =
-  swaggerJSDoc(options);
+const swaggerSpec = swaggerJSDoc(options);
 
-  console.log(
-  JSON.stringify(swaggerSpec, null, 2)
-  );
+console.log(JSON.stringify(swaggerSpec, null, 2));
 
 export default swaggerSpec;

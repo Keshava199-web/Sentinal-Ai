@@ -28,7 +28,7 @@
  *               password:
  *                 type: string
  *                 example: Str0NGpAss@123
- *               
+ *
  *     responses:
  *       201:
  *         description: User registered successfully

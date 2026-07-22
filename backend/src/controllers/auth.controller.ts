@@ -1,8 +1,4 @@
-import {
-  Request,
-  Response,
-  NextFunction,
-} from "express";
+import { Request, Response, NextFunction } from "express";
 
 import { Role } from "@prisma/client";
 
@@ -14,9 +10,7 @@ import {
 
 import prisma from "../config/prisma";
 
-import {
-  createAuditLog,
-} from "../utils/auditLogger";
+import { createAuditLog } from "../utils/auditLogger";
 
 /**
  * Register Controller
@@ -24,33 +18,27 @@ import {
 export const register = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     /**
      * Extract validated body
      */
-    const {
-      email,
-      password,
-    } = req.body;
+    const { email, password } = req.body;
 
     /**
      * Normalize email
      */
-    const normalizedEmail =
-      email.toLowerCase();
+    const normalizedEmail = email.toLowerCase();
 
     /**
      * Check existing user
      */
-    const existingUser =
-      await prisma.user.findUnique({
-        where: {
-          email:
-            normalizedEmail,
-        },
-      });
+    const existingUser = await prisma.user.findUnique({
+      where: {
+        email: normalizedEmail,
+      },
+    });
 
     /**
      * Prevent duplicate accounts
@@ -58,73 +46,54 @@ export const register = async (
     if (existingUser) {
       return res.status(409).json({
         success: false,
-        message:
-          "Registration failed",
+        message: "Registration failed",
       });
     }
 
     /**
      * Hash password
      */
-    const hashedPassword =
-      await hashPassword(
-        password
-    );
+    const hashedPassword = await hashPassword(password);
 
     /**
      * Create user
      */
-    const user =
-      await prisma.user.create({
-        data: {
-          email:
-            normalizedEmail,
-          password:
-            hashedPassword,
-          role: Role.VIEWER,
-        },
-      });
+    const user = await prisma.user.create({
+      data: {
+        email: normalizedEmail,
+        password: hashedPassword,
+        role: Role.VIEWER,
+      },
+    });
 
     /**
      * Generate JWT
      */
-    const token =
-    generateToken(
-      user.id,
-      user.email,
-      user.role,
-    );
+    const token = generateToken(user.id, user.email, user.role);
 
     /**
      * Create audit log
      */
-    createAuditLog(
-      "USER_REGISTERED",
-      user.id
-    ).catch(console.error);
+    createAuditLog("USER_REGISTERED", user.id).catch(console.error);
 
     /**
      * Success response
      */
     return res.status(201).json({
       success: true,
-      message:
-        "User registered successfully",
+      message: "User registered successfully",
       token,
       user: {
         id: user.id,
         email: user.email,
         role: user.role,
-        createdAt:
-          user.createdAt,
+        createdAt: user.createdAt,
       },
     });
   } catch (error) {
     console.error(
       "[REGISTER_ERROR]",
-      error instanceof Error
-        ? error.message
-        : "Unknown error"
+      error instanceof Error ? error.message : "Unknown error",
     );
 
     next(error);
@@ -137,33 +106,27 @@ export const register = async (
 export const login = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     /**
      * Extract validated body
      */
-    const {
-      email,
-      password,
-    } = req.body;
+    const { email, password } = req.body;
 
     /**
      * Normalize email
      */
-    const normalizedEmail =
-      email.toLowerCase();
+    const normalizedEmail = email.toLowerCase();
 
     /**
      * Find user
      */
-    const user =
-      await prisma.user.findUnique({
-        where: {
-          email:
-            normalizedEmail,
-        },
-      });
+    const user = await prisma.user.findUnique({
+      where: {
+        email: normalizedEmail,
+      },
+    });
 
     /**
      * Prevent user enumeration
@@ -171,19 +134,14 @@ export const login = async (
     if (!user) {
       return res.status(401).json({
         success: false,
-        message:
-          "Invalid credentials",
+        message: "Invalid credentials",
       });
     }
 
     /**
      * Verify password
      */
-    const isPasswordValid =
-    await comparePassword(
-      password,
-      user.password
-    );
+    const isPasswordValid = await comparePassword(password, user.password);
 
     /**
      * Invalid password
@@ -191,51 +149,38 @@ export const login = async (
     if (!isPasswordValid) {
       return res.status(401).json({
         success: false,
-        message:
-          "Invalid credentials",
+        message: "Invalid credentials",
       });
     }
 
     /**
      * Generate JWT
      */
-    const token =
-    generateToken(
-      user.id,
-      user.email,
-      user.role,
-    );
+    const token = generateToken(user.id, user.email, user.role);
 
     /**
      * Create audit log
      */
-    createAuditLog(
-      "USER_LOGIN",
-      user.id
-    ).catch(console.error);
+    createAuditLog("USER_LOGIN", user.id).catch(console.error);
 
     /**
      * Success response
      */
     return res.status(200).json({
       success: true,
-      message:
-        "Login successful",
+      message: "Login successful",
       token,
       user: {
         id: user.id,
         email: user.email,
         role: user.role,
-        createdAt:
-          user.createdAt,
+        createdAt: user.createdAt,
       },
     });
   } catch (error) {
     console.error(
       "[LOGIN_ERROR]",
-      error instanceof Error
-        ? error.message
-        : "Unknown error"
+      error instanceof Error ? error.message : "Unknown error",
     );
 
     next(error);

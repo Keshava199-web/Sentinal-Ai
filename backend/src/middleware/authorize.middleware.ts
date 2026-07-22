@@ -1,18 +1,10 @@
-import {
-  Request,
-  Response,
-  NextFunction,
-} from "express";
+import { Request, Response, NextFunction } from "express";
 
 import { Role } from "@prisma/client";
 
 export const authorize =
   (...allowedRoles: Role[]) =>
-  (
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ) => {
+  (req: Request, res: Response, next: NextFunction) => {
     /**
      * User missing
      */
@@ -26,11 +18,7 @@ export const authorize =
     /**
      * Role check
      */
-    if (
-      !allowedRoles.includes(
-        req.user.role
-      )
-    ) {
+    if (!allowedRoles.includes(req.user.role)) {
       return res.status(403).json({
         success: false,
         message: "Forbidden",

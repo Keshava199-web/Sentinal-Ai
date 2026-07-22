@@ -38,7 +38,7 @@ app.use(
         : "http://localhost:3000",
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     credentials: true,
-  })
+  }),
 );
 
 /**
@@ -47,7 +47,7 @@ app.use(
 app.use(
   helmet({
     crossOriginResourcePolicy: { policy: "cross-origin" },
-  })
+  }),
 );
 
 /**
@@ -61,7 +61,6 @@ app.use(morgan(NODE_ENV === "production" ? "combined" : "dev"));
  */
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true, limit: "1mb" }));
-
 
 app.use("/health", healthRoutes);
 app.use("/auth", authRoutes);
@@ -77,15 +76,15 @@ app.use(
   "/api-docs",
   swaggerUi.serve,
   swaggerUi.setup(swaggerSpec, {
-  explorer: true,
-  customSiteTitle: "Sentinel-AI Docs",
-  swaggerOptions: {
-    docExpansion: "list",
-    filter: true,
-    tagsSorter: "alpha",
-    operationsSorter: "alpha",
-  },
-})
+    explorer: true,
+    customSiteTitle: "Sentinel-AI Docs",
+    swaggerOptions: {
+      docExpansion: "list",
+      filter: true,
+      tagsSorter: "alpha",
+      operationsSorter: "alpha",
+    },
+  }),
 );
 /**
  * Health check route
@@ -98,12 +97,9 @@ app.get("/", (_req: Request, res: Response) => {
   });
 });
 
-app.get(
-  "/api-docs.json",
-  (_, res) => {
-    res.json(swaggerSpec);
-  }
-);
+app.get("/api-docs.json", (_, res) => {
+  res.json(swaggerSpec);
+});
 
 /**
  * 404 handler
@@ -118,25 +114,14 @@ app.use((_req: Request, res: Response) => {
 /**
  * Global error handler
  */
-app.use(
-  (
-    err: Error,
-    _req: Request,
-    res: Response,
-    _next: NextFunction
-  ) => {
-    console.error("[ERROR]", err.message);
+app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
+  console.error("[ERROR]", err.message);
 
-    res.status(500).json({
-      success: false,
-      message:
-        NODE_ENV === "production"
-          ? "Internal Server Error"
-          : err.message,
-    });
-  }
-);
-
+  res.status(500).json({
+    success: false,
+    message: NODE_ENV === "production" ? "Internal Server Error" : err.message,
+  });
+});
 
 /**
  * Start server

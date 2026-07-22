@@ -1,72 +1,120 @@
-import prisma from "../config/prisma";
+import {
+  IncidentSeverity,
+  IncidentStatus,
+  Role,
+} from "@prisma/client";
+
+import {
+  createIncidentRepository,
+  getIncidentsRepository,
+  getIncidentByIdRepository,
+  updateIncidentStatusRepository,
+  deleteIncidentRepository,
+  assignIncidentRepository,
+  findUserByIdRepository,
+} from "../repositories/incident.repository";
 
 /**
- * Create incident
+ * Create Incident
  */
-export const createIncidentService =
-  async (
-    title: string,
-    description: string,
-    severity: string,
-    sourceIp?: string
-  ) => {
-    return prisma.incident.create({
-      data: {
-        title,
-        description,
-        severity,
-        sourceIp: sourceIp ?? null,
-      },
-    });
-  };
+export const createIncidentService = async (
+  title: string,
+  description: string,
+  severity: IncidentSeverity,
+  sourceIp: string | undefined,
+  reporterId: string,
+) => {
+  return createIncidentRepository(
+    title,
+    description,
+    severity,
+    sourceIp,
+    reporterId,
+  );
+};
 
 /**
- * Get incidents
+ * Get All Incidents
  */
-export const getIncidentsService =
-  async (
-    skip: number,
-    limit: number
-  ) => {
-    return prisma.incident.findMany({
-      skip,
-      take: limit,
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
-  };
+export const getIncidentsService = async (
+  skip: number,
+  limit: number,
+) => {
+  return getIncidentsRepository(skip, limit);
+};
 
 /**
- * Get incident by ID
+ * Get Incident By ID
  */
-export const getIncidentByIdService =
-  async (id: string) => {
-    return prisma.incident.findUnique({
-      where: { id },
-    });
-  };
+export const getIncidentByIdService = async (
+  id: string,
+) => {
+  return getIncidentByIdRepository(id);
+};
 
 /**
- * Update incident status
+ * Update Incident Status
  */
-export const updateIncidentStatusService =
-  async (
-    id: string,
-    status: string
-  ) => {
-    return prisma.incident.update({
-      where: { id },
-      data: { status },
-    });
-  };
+export const updateIncidentStatusService = async (
+  id: string,
+  status: IncidentStatus,
+) => {
+  return updateIncidentStatusRepository(id, status);
+};
 
 /**
- * Delete incident
+ * Delete Incident
  */
-export const deleteIncidentService =
-  async (id: string) => {
-    return prisma.incident.delete({
-      where: { id },
-    });
-  };
+export const deleteIncidentService = async (
+  id: string,
+) => {
+  return deleteIncidentRepository(id);
+};
+
+/**
+ * Assign Incident
+ */
+export const assignIncidentService = async (
+  incidentId: string,
+  assignedToId: string,
+) => {
+  /**
+   * Verify incident exists
+   */
+  const incident = await getIncidentByIdRepository(incidentId);
+
+  if (!incident) {
+    throw new Error("Incident not found");
+  }
+
+  /**
+   * Closed incidents cannot be reassigned
+   */
+  if (incident.status === IncidentStatus.CLOSED) {
+    throw new Error("Closed incidents cannot be assigned");
+  }
+
+  /**
+   * Verify analyst exists
+   */
+  const analyst = await findUserByIdRepository(assignedToId);
+
+  if (!analyst) {
+    throw new Error("Analyst not found");
+  }
+
+  /**
+   * Only analysts can be assigned incidents
+   */
+  if (analyst.role !== Role.ANALYST) {
+    throw new Error("User is not an analyst");
+  }
+
+  /**
+   * Assign incident
+   */
+  return assignIncidentRepository(
+    incidentId,
+    assignedToId,
+  );
+};

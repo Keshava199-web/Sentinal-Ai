@@ -14,8 +14,7 @@ const authLimiter = rateLimit({
 
   message: {
     success: false,
-    message:
-      "Too many requests. Please try again later.",
+    message: "Too many requests. Please try again later.",
   },
 });
 

@@ -1,8 +1,4 @@
-import {
-  Request,
-  Response,
-  NextFunction,
-} from "express";
+import { Request, Response, NextFunction } from "express";
 
 import jwt from "jsonwebtoken";
 
@@ -17,29 +13,20 @@ if (!JWT_SECRET) {
   throw new Error("JWT_SECRET is missing");
 }
 
-
 /**
  * JWT Authentication Middleware
  */
-export const protect = (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const protect = (req: Request, res: Response, next: NextFunction) => {
   try {
     /**
      * Get authorization header
      */
-    const authHeader =
-      req.headers.authorization;
+    const authHeader = req.headers.authorization;
 
     /**
      * Validate authorization header
      */
-    if (
-      !authHeader ||
-      !authHeader.startsWith("Bearer ")
-    ) {
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return res.status(401).json({
         success: false,
         message: "Unauthorized",
@@ -49,8 +36,7 @@ export const protect = (
     /**
      * Extract token
      */
-    const token =
-      authHeader.split(" ")[1];
+    const token = authHeader.split(" ")[1];
 
     /**
      * Validate token existence
@@ -65,10 +51,7 @@ export const protect = (
     /**
      * Verify JWT
      */
-    const decoded = jwt.verify(
-      token,
-      JWT_SECRET
-    );
+    const decoded = jwt.verify(token, JWT_SECRET);
 
     /**
      * Validate decoded payload
@@ -99,9 +82,7 @@ export const protect = (
   } catch (error) {
     console.error(
       "[AUTH_MIDDLEWARE]",
-      error instanceof Error
-        ? error.message
-        : "Unknown error"
+      error instanceof Error ? error.message : "Unknown error",
     );
 
     return res.status(401).json({

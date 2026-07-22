@@ -1,8 +1,4 @@
-import {
-  Request,
-  Response,
-  NextFunction,
-} from "express";
+import { Request, Response, NextFunction } from "express";
 
 import { z } from "zod";
 
@@ -11,23 +7,13 @@ import { z } from "zod";
  */
 const validate = (
   schema: z.ZodSchema,
-  source:
-    | "body"
-    | "query"
-    | "params" = "body"
+  source: "body" | "query" | "params" = "body",
 ) => {
-  return (
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ) => {
+  return (req: Request, res: Response, next: NextFunction) => {
     /**
      * Validate source
      */
-    const validated =
-      schema.safeParse(
-        req[source]
-      );
+    const validated = schema.safeParse(req[source]);
 
     /**
      * Validation failed
@@ -36,25 +22,17 @@ const validate = (
       return res.status(400).json({
         success: false,
         message: "Validation failed",
-        errors:
-          validated.error.issues.map(
-            (err) => ({
-              field:
-                err.path.join("."),
-              message:
-                err.message,
-            })
-          ),
+        errors: validated.error.issues.map((err) => ({
+          field: err.path.join("."),
+          message: err.message,
+        })),
       });
     }
 
     /**
      * Attach sanitized data
      */
-    Object.assign(
-      req[source],
-      validated.data
-    );
+    Object.assign(req[source], validated.data);
 
     next();
   };

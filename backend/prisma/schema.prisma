@@ -7,11 +7,68 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id                String     @id @default(uuid())
+  email             String     @unique
+  password          String
+  createdAt         DateTime   @default(now())
+  role              Role       @default(VIEWER)
+  updatedAt         DateTime   @updatedAt
+  auditLogs         AuditLog[] @relation("UserAuditLogs")
+  assignedIncidents Incident[] @relation("AssignedIncidents")
+  reportedIncidents Incident[] @relation("ReportedIncidents")
+}
+
+model Incident {
+  id              String           @id @default(uuid())
+  title           String
+  description     String
+  sourceIp        String?
+  createdAt       DateTime         @default(now())
+  assignedToId    String?
+  category        IncidentCategory @default(OTHER)
+  destinationIp   String?
+  detectionSource DetectionSource  @default(MANUAL)
+  hostname        String?
+  reporterId      String
+  resolvedAt      DateTime?
+  updatedAt       DateTime         @updatedAt
+  severity        IncidentSeverity
+  status          IncidentStatus   @default(OPEN)
+  auditLogs       AuditLog[]       @relation("IncidentAuditLogs")
+  assignedTo      User?            @relation("AssignedIncidents", fields: [assignedToId], references: [id])
+  reporter        User             @relation("ReportedIncidents", fields: [reporterId], references: [id])
+
+  @@index([resolvedAt])
+  @@index([severity])
+  @@index([status])
+  @@index([category])
+  @@index([detectionSource])
+  @@index([reporterId])
+  @@index([assignedToId])
+  @@index([createdAt])
+  @@index([status, severity])
+  @@index([status, createdAt])
+}
+
+model AuditLog {
+  id         String      @id @default(uuid())
+  userId     String
+  incidentId String?
+  createdAt  DateTime    @default(now())
+  action     AuditAction
+  incident   Incident?   @relation("IncidentAuditLogs", fields: [incidentId], references: [id])
+  user       User        @relation("UserAuditLogs", fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([incidentId])
+}
+
 enum Role {
   VIEWER
   ANALYST
-  SOC_MANAGER
   ADMIN
+  SOC_MANAGER
 }
 
 enum IncidentSeverity {
@@ -29,77 +86,6 @@ enum IncidentStatus {
   ERADICATED
   RECOVERED
   CLOSED
-}
-
-model User {
-  id       String @id @default(uuid())
-  email    String @unique
-  password String
-  role     Role   @default(VIEWER)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  reportedIncidents Incident[] @relation("ReportedIncidents")
-  assignedIncidents Incident[] @relation("AssignedIncidents")
-
-  auditLogs AuditLog[] @relation("UserAuditLogs")
-}
-
-model Incident {
-  id          String @id @default(uuid())
-  title       String
-  description String
-
-  severity IncidentSeverity
-  status   IncidentStatus   @default(OPEN)
-  category IncidentCategory @default(OTHER)
-
-  detectionSource DetectionSource @default(MANUAL)
-
-  sourceIp      String?
-  destinationIp String?
-  hostname      String?
-
-  reporterId String
-  reporter   User   @relation("ReportedIncidents", fields: [reporterId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-
-  assignedToId String?
-  assignedTo   User?   @relation("AssignedIncidents", fields: [assignedToId], references: [id], onDelete: SetNull, onUpdate: Cascade)
-
-  resolvedAt DateTime?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  auditLogs AuditLog[] @relation("IncidentAuditLogs")
-
-  @@index([resolvedAt])
-  @@index([severity])
-  @@index([status])
-  @@index([category])
-  @@index([detectionSource])
-  @@index([reporterId])
-  @@index([assignedToId])
-  @@index([createdAt])
-  @@index([status, severity])
-  @@index([status, createdAt])
-}
-
-model AuditLog {
-  id     String      @id @default(uuid())
-  action AuditAction
-
-  userId     String
-  incidentId String?
-
-  createdAt DateTime @default(now())
-
-  user     User      @relation("UserAuditLogs", fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  incident Incident? @relation("IncidentAuditLogs", fields: [incidentId], references: [id], onDelete: SetNull, onUpdate: Cascade)
-
-  @@index([userId])
-  @@index([incidentId])
 }
 
 enum IncidentCategory {
@@ -130,11 +116,13 @@ enum AuditAction {
   USER_REGISTERED
   USER_LOGIN
   USER_LOGOUT
-
   INCIDENT_CREATED
   INCIDENT_UPDATED
   INCIDENT_ASSIGNED
   INCIDENT_STATUS_CHANGED
   INCIDENT_CLOSED
   INCIDENT_DELETED
+  INCIDENT_VIEWED
+  INCIDENTS_VIEWED
+  AUDIT_LOGS_VIEWED
 }

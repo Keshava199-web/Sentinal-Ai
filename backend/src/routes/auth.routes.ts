@@ -1,18 +1,12 @@
 import { Router } from "express";
 
-import {
-  register,
-  login,
-} from "../controllers/auth.controller";
+import { register, login } from "../controllers/auth.controller";
 
 import authLimiter from "../middleware/rateLimit.middleware";
 
 import validate from "../middleware/validate.middleware";
 
-import {
-  registerSchema,
-  loginSchema,
-} from "../validators/auth.validator";
+import { registerSchema, loginSchema } from "../validators/auth.validator";
 
 const router = Router();
 
@@ -58,12 +52,7 @@ const router = Router();
  *       409:
  *         description: User already exists
  */
-router.post(
-  "/register",
-  authLimiter,
-  validate(registerSchema),
-  register
-);
+router.post("/register", authLimiter, validate(registerSchema), register);
 
 /**
  * @swagger
@@ -94,11 +83,6 @@ router.post(
  *       401:
  *         description: Invalid credentials
  */
-router.post(
-  "/login",
-  authLimiter,
-  validate(loginSchema),
-  login
-);
+router.post("/login", authLimiter, validate(loginSchema), login);
 
 export default router;

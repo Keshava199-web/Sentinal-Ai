@@ -8,13 +8,9 @@ import {
   deleteIncident,
 } from "../controllers/incident.controller";
 
-import {
-  protect,
-} from "../middleware/auth.middleware";
+import { protect } from "../middleware/auth.middleware";
 
-import {
-  authorizeRoles,
-} from "../middleware/role.middleware";
+import { authorizeRoles } from "../middleware/role.middleware";
 
 import validate from "../middleware/validate.middleware";
 
@@ -75,15 +71,7 @@ const router = Router();
  *       401:
  *         description: Unauthorized
  */
-router.get(
-  "/",
-  protect,
-  validate(
-    incidentQuerySchema,
-    "query"
-  ),
-  getIncidents
-);
+router.get("/", protect, validate(incidentQuerySchema, "query"), getIncidents);
 
 /**
  * @swagger
@@ -109,11 +97,8 @@ router.get(
 router.get(
   "/:id",
   protect,
-   validate(
-    incidentIdParamSchema,
-    "params"
-  ),
-  getIncidentById
+  validate(incidentIdParamSchema, "params"),
+  getIncidentById,
 );
 
 /**
@@ -161,14 +146,9 @@ router.get(
 router.post(
   "/",
   protect,
-  authorizeRoles(
-    "ADMIN",
-    "ANALYST"
-  ),
-  validate(
-    createIncidentSchema
-  ),
-  createIncident
+  authorizeRoles("ADMIN", "ANALYST"),
+  validate(createIncidentSchema),
+  createIncident,
 );
 
 /**
@@ -209,18 +189,10 @@ router.post(
 router.patch(
   "/:id",
   protect,
-  authorizeRoles(
-    "ADMIN",
-    "ANALYST"
-  ),
-  validate(
-    incidentIdParamSchema,
-    "params"
-  ),
-  validate(
-    updateIncidentSchema
-  ),
-  updateIncidentStatus
+  authorizeRoles("ADMIN", "ANALYST"),
+  validate(incidentIdParamSchema, "params"),
+  validate(updateIncidentSchema),
+  updateIncidentStatus,
 );
 
 /**
@@ -250,11 +222,8 @@ router.delete(
   "/:id",
   protect,
   authorizeRoles("ADMIN"),
-   validate(
-    incidentIdParamSchema,
-    "params"
-  ),
-  deleteIncident
+  validate(incidentIdParamSchema, "params"),
+  deleteIncident,
 );
 
 export default router;

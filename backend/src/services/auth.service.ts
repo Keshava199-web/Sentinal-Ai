@@ -9,39 +9,24 @@ import { env } from "../config/env";
 /**
  * Hash password
  */
-export const hashPassword =
-  async (
-    password: string
-  ) => {
-    return bcrypt.hash(
-      password,
-      12
-    );
-  };
+export const hashPassword = async (password: string) => {
+  return bcrypt.hash(password, 12);
+};
 
 /**
  * Compare password
  */
-export const comparePassword =
-  async (
-    password: string,
-    hashedPassword: string
-  ) => {
-    return bcrypt.compare(
-      password,
-      hashedPassword
-    );
-  };
+export const comparePassword = async (
+  password: string,
+  hashedPassword: string,
+) => {
+  return bcrypt.compare(password, hashedPassword);
+};
 
 /**
  * Generate JWT
  */
-export const generateToken =
-(
-  userId: string,
-  email: string,
-  role: Role
-) => {
+export const generateToken = (userId: string, email: string, role: Role) => {
   return jwt.sign(
     {
       userId,
@@ -52,8 +37,7 @@ export const generateToken =
     {
       expiresIn: "15m",
       issuer: "sentinel-ai",
-      audience:
-        "sentinel-ai-users",
-    }
+      audience: "sentinel-ai-users",
+    },
   );
 };
