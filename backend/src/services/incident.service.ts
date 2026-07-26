@@ -5,7 +5,7 @@ import {
   TimelineAction,
 } from "@prisma/client";
 
-import { createTimelineEntryService } from "./incidentTimeline.service";
+// import { createTimelineEntryService } from "./incidentTimeline.service";
 import { createTimelineEntryRepository } from "../repositories/incidentTimeline.repository";
 
 import { withTransaction } from "../database/transaction";
@@ -86,31 +86,43 @@ export const updateIncidentStatusService = async (
   id: string,
   status: IncidentStatus,
 ) => {
-  const incident = await getIncidentByIdRepository(id);
+  return withTransaction(async (tx) => {
+    const incident = await getIncidentByIdRepository(id, tx);
 
-  if (!incident) {
-    throw new NotFoundError("Incident not found");
-  }
+    if (!incident) {
+      throw new NotFoundError("Incident not found");
+    }
 
-  const previousStatus = incident.status;
+    const previousStatus = incident.status;
 
-  if (incident.status === status) {
-    throw new ConflictError("Incident already has this status");
-  }
+    if (previousStatus === status) {
+      throw new ConflictError(
+        "Incident already has this status",
+      );
+    }
 
-  const updatedIncident = await updateIncidentStatusRepository(id, status);
+    const updatedIncident =
+      await updateIncidentStatusRepository(
+        id,
+        status,
+        tx,
+      );
 
-  await createTimelineEntryService({
-    incidentId: id,
-    action: TimelineAction.STATUS_CHANGED,
-    description: `Status changed from ${previousStatus} to ${status}`,
-    metadata: {
-      previousStatus,
-      newStatus: status,
-    },
+    await createTimelineEntryRepository(
+      {
+        incidentId: id,
+        action: TimelineAction.STATUS_CHANGED,
+        description: `Status changed from ${previousStatus} to ${status}`,
+        metadata: {
+          previousStatus,
+          newStatus: status,
+        },
+      },
+      tx,
+    );
+
+    return updatedIncident;
   });
-
-  return updatedIncident;
 };
 
 /**
@@ -129,57 +141,64 @@ export const assignIncidentService = async (
   incidentId: string,
   assignedToId: string,
 ) => {
-  /**
-   * Verify incident exists
-   */
-const incident = await getIncidentByIdRepository(incidentId);
+  return withTransaction(async (tx) => {
+    const incident = await getIncidentByIdRepository(
+      incidentId,
+      tx,
+    );
 
-if (!incident) {
-  throw new NotFoundError("Incident not found");
-}
+    if (!incident) {
+      throw new NotFoundError("Incident not found");
+    }
 
-if (incident.status === IncidentStatus.CLOSED) {
-  throw new ConflictError("Closed incidents cannot be assigned");
-}
+    if (incident.status === IncidentStatus.CLOSED) {
+      throw new ConflictError(
+        "Closed incidents cannot be assigned",
+      );
+    }
 
-if (incident.assignedToId === assignedToId) {
-  throw new ConflictError("Incident is already assigned to this analyst");
-}
+    if (incident.assignedToId === assignedToId) {
+      throw new ConflictError(
+        "Incident is already assigned to this analyst",
+      );
+    }
 
-  /**
-   * Verify analyst exists
-   */
-  const analyst = await findUserByIdRepository(assignedToId);
+    const analyst = await findUserByIdRepository(
+      assignedToId,
+      tx,
+    );
 
-  if (!analyst) {
-    throw new NotFoundError("Analyst not found");
-  }
+    if (!analyst) {
+      throw new NotFoundError("Analyst not found");
+    }
 
-  /**
-   * Only analysts can be assigned incidents
-   */
-  if (analyst.role !== Role.ANALYST) {
-    throw new BadRequestError("User is not an analyst");
-  }
+    if (analyst.role !== Role.ANALYST) {
+      throw new BadRequestError(
+        "User is not an analyst",
+      );
+    }
 
-  /**
-   * Assign incident
-   */
-  const updatedIncident = await assignIncidentRepository(
-  incidentId,
-  assignedToId,
-);
+    const updatedIncident =
+      await assignIncidentRepository(
+        incidentId,
+        assignedToId,
+        tx,
+      );
 
-await createTimelineEntryService({
-  incidentId,
-  userId: assignedToId,
-  action: TimelineAction.ASSIGNED,
-  description: `Assigned to ${analyst.email}`,
-  metadata: {
-    assignedToId,
-    analystEmail: analyst.email,
-  },
-});
+    await createTimelineEntryRepository(
+      {
+        incidentId,
+        userId: assignedToId,
+        action: TimelineAction.ASSIGNED,
+        description: `Assigned to ${analyst.email}`,
+        metadata: {
+          assignedToId,
+          analystEmail: analyst.email,
+        },
+      },
+      tx,
+    );
 
-return updatedIncident;
+    return updatedIncident;
+  });
 };

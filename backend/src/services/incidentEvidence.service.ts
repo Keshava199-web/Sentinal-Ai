@@ -4,7 +4,11 @@ import { TimelineAction } from "@prisma/client";
 
 import { generateFileHash } from "../utils/fileHash";
 
-import { createTimelineEntryService } from "./incidentTimeline.service";
+import { withTransaction } from "../database/transaction";
+
+import {
+  createTimelineEntryRepository,
+} from "../repositories/incidentTimeline.repository";
 
 import {
   createEvidenceRepository,
@@ -26,72 +30,164 @@ type CreateEvidenceServiceInput = {
   file: Express.Multer.File;
 };
 
-/**
- * Upload Evidence
- */
 export const createEvidenceService = async (
   data: CreateEvidenceServiceInput,
 ) => {
   /**
-   * Verify incident
-   */
-  const incident = await getIncidentByIdRepository(
-    data.incidentId,
-  );
-
-  if (!incident) {
-    throw new NotFoundError("Incident not found");
-  }
-
-  /**
-   * Verify uploader
-   */
-  const user = await findUserByIdRepository(
-    data.uploadedById,
-  );
-
-  if (!user) {
-    throw new NotFoundError("User not found");
-  }
-
-  /**
-   * Generate SHA-256
+   * Generate SHA-256 before transaction
    */
   const sha256 = await generateFileHash(
     data.file.path,
   );
 
-  /**
-   * Save evidence
-   */
-  const evidence =
-    await createEvidenceRepository({
-      incidentId: data.incidentId,
-      uploadedById: data.uploadedById,
-      fileName: path.basename(data.file.filename),
-      originalName: data.file.originalname,
-      mimeType: data.file.mimetype,
-      fileSize: data.file.size,
-      storagePath: data.file.path,
-      sha256,
-    });
+  return withTransaction(async (tx) => {
+    /**
+     * Verify incident
+     */
+    const incident = await getIncidentByIdRepository(
+      data.incidentId,
+      tx,
+    );
 
-  /**
-   * Timeline
-   */
-  await createTimelineEntryService({
-    incidentId: data.incidentId,
-    userId: data.uploadedById,
-    action: TimelineAction.EVIDENCE_UPLOADED,
-    description: `Evidence uploaded: ${data.file.originalname}`,
-    metadata: {
-      evidenceId: evidence.id,
-      sha256,
-    },
+    if (!incident) {
+      throw new NotFoundError("Incident not found");
+    }
+
+    /**
+     * Verify uploader
+     */
+    const user = await findUserByIdRepository(
+      data.uploadedById,
+      tx,
+    );
+
+    if (!user) {
+      throw new NotFoundError("User not found");
+    }
+
+    /**
+     * Save evidence
+     */
+    const evidence = await createEvidenceRepository(
+      {
+        incidentId: data.incidentId,
+        uploadedById: data.uploadedById,
+        fileName: path.basename(data.file.filename),
+        originalName: data.file.originalname,
+        mimeType: data.file.mimetype,
+        fileSize: data.file.size,
+        storagePath: data.file.path,
+        sha256,
+      },
+      tx,
+    );
+
+    /**
+     * Timeline
+     */
+    await createTimelineEntryRepository(
+      {
+        incidentId: data.incidentId,
+        userId: data.uploadedById,
+        action: TimelineAction.EVIDENCE_UPLOADED,
+        description: `Evidence uploaded: ${data.file.originalname}`,
+        metadata: {
+          evidenceId: evidence.id,
+          sha256,
+        },
+      },
+      tx,
+    );
+
+    return evidence;
   });
-
-  return evidence;
 };
+
+/**
+ * Upload Evidence
+ */
+// export const createEvidenceService = async (
+//   data: CreateEvidenceServiceInput,
+// ) => {
+//   /**
+//    * Generate SHA-256 before opening transaction.
+//    * Hashing is a filesystem operation, not a database operation.
+//    */
+//   const sha256 = await generateFileHash(
+//     data.file.path,
+//   );
+
+//   return withTransaction(async (tx) => {
+//     /**
+//      * Verify incident
+//      */
+//     const incident =
+//       await getIncidentByIdRepository(
+//         data.incidentId,
+//         tx,
+//       );
+
+//     if (!incident) {
+//       throw new NotFoundError(
+//         "Incident not found",
+//       );
+//     }
+
+//     /**
+//      * Verify uploader
+//      */
+//     const user =
+//       await findUserByIdRepository(
+//         data.uploadedById,
+//         tx,
+//       );
+
+//     if (!user) {
+//       throw new NotFoundError(
+//         "User not found",
+//       );
+//     }
+
+//     /**
+//      * Save evidence
+//      */
+//     const evidence =
+//       await createEvidenceRepository(
+//         {
+//           incidentId: data.incidentId,
+//           uploadedById: data.uploadedById,
+//           fileName: path.basename(
+//             data.file.filename,
+//           ),
+//           originalName: data.file.originalname,
+//           mimeType: data.file.mimetype,
+//           fileSize: data.file.size,
+//           storagePath: data.file.path,
+//           sha256,
+//         },
+//         tx,
+//       );
+
+//     /**
+//      * Timeline
+//      */
+//     await createTimelineEntryRepository(
+//       {
+//         incidentId: data.incidentId,
+//         userId: data.uploadedById,
+//         action: TimelineAction.EVIDENCE_UPLOADED,
+//         description: `Evidence uploaded: ${data.file.originalname}`,
+//         metadata: {
+//           evidenceId: evidence.id,
+//           sha256,
+//         },
+//       },
+//       tx,
+//     );
+
+//     return evidence;
+//   });
+// };
 
 /**
  * Get Evidence

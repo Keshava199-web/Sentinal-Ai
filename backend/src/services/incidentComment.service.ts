@@ -1,6 +1,10 @@
 import { TimelineAction } from "@prisma/client";
 
-import { createTimelineEntryService } from "./incidentTimeline.service";
+import { withTransaction } from "../database/transaction";
+
+import {
+  createTimelineEntryRepository,
+} from "../repositories/incidentTimeline.repository";
 
 import {
   getIncidentByIdRepository,
@@ -10,6 +14,7 @@ import {
   createIncidentCommentRepository,
   getIncidentCommentsRepository,
 } from "../repositories/incidentComment.repository";
+
 import { NotFoundError } from "../errors/NotFoundError";
 
 type CreateIncidentCommentServiceInput = {
@@ -24,37 +29,47 @@ type CreateIncidentCommentServiceInput = {
 export const createIncidentCommentService = async (
   data: CreateIncidentCommentServiceInput,
 ) => {
-  /**
-   * Verify incident exists
-   */
-  const incident = await getIncidentByIdRepository(
-    data.incidentId,
-  );
+  return withTransaction(async (tx) => {
+    /**
+     * Verify incident exists
+     */
+    const incident =
+      await getIncidentByIdRepository(
+        data.incidentId,
+        tx,
+      );
 
-  if (!incident) {
-    throw new NotFoundError("Incident not found");
-  }
+    if (!incident) {
+      throw new NotFoundError("Incident not found");
+    }
 
-  /**
-   * Create comment
-   */
-  const comment =
-    await createIncidentCommentRepository(data);
+    /**
+     * Create comment
+     */
+    const comment =
+      await createIncidentCommentRepository(
+        data,
+        tx,
+      );
 
-  /**
-   * Create timeline entry
-   */
-  await createTimelineEntryService({
-    incidentId: data.incidentId,
-    userId: data.userId,
-    action: TimelineAction.COMMENT_ADDED,
-    description: "Comment added",
-    metadata: {
-      commentId: comment.id,
-    },
+    /**
+     * Timeline
+     */
+    await createTimelineEntryRepository(
+      {
+        incidentId: data.incidentId,
+        userId: data.userId,
+        action: TimelineAction.COMMENT_ADDED,
+        description: "Comment added",
+        metadata: {
+          commentId: comment.id,
+        },
+      },
+      tx,
+    );
+
+    return comment;
   });
-
-  return comment;
 };
 
 /**
@@ -71,7 +86,7 @@ export const getIncidentCommentsService = async (
   );
 
   if (!incident) {
-    throw new Error("Incident not found");
+    throw new NotFoundError("Incident not found");
   }
 
   return getIncidentCommentsRepository(
