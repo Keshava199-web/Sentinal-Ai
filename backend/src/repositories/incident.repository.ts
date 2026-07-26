@@ -3,7 +3,7 @@ import {
   IncidentStatus,
 } from "@prisma/client";
 
-import prisma from "../config/prisma";
+import { db, PrismaTransaction } from "../types/prisma";
 
 /**
  * Shared Incident Relations
@@ -39,8 +39,9 @@ type CreateIncidentRepositoryInput = {
 
 export const createIncidentRepository = async (
   data: CreateIncidentRepositoryInput,
+  tx: PrismaTransaction | typeof db = db,
 ) => {
-  return prisma.incident.create({
+  return tx.incident.create({
     data: {
       title: data.title,
       description: data.description,
@@ -62,8 +63,9 @@ export const createIncidentRepository = async (
 export const getIncidentsRepository = async (
   skip: number,
   limit: number,
+  tx: PrismaTransaction | typeof db = db,
 ) => {
-  return prisma.incident.findMany({
+  return tx.incident.findMany({
     skip,
     take: limit,
     orderBy: {
@@ -78,8 +80,9 @@ export const getIncidentsRepository = async (
  */
 export const getIncidentByIdRepository = async (
   id: string,
+  tx: PrismaTransaction | typeof db = db,
 ) => {
-  return prisma.incident.findUnique({
+  return tx.incident.findUnique({
     where: {
       id,
     },
@@ -93,8 +96,9 @@ export const getIncidentByIdRepository = async (
 export const updateIncidentStatusRepository = async (
   id: string,
   status: IncidentStatus,
+  tx: PrismaTransaction | typeof db = db,
 ) => {
-  return prisma.incident.update({
+  return tx.incident.update({
     where: {
       id,
     },
@@ -109,8 +113,9 @@ export const updateIncidentStatusRepository = async (
  */
 export const deleteIncidentRepository = async (
   id: string,
+  tx: PrismaTransaction | typeof db = db,
 ) => {
-  return prisma.incident.delete({
+  return tx.incident.delete({
     where: {
       id,
     },
@@ -122,8 +127,9 @@ export const deleteIncidentRepository = async (
  */
 export const findUserByIdRepository = async (
   userId: string,
+  tx: PrismaTransaction | typeof db = db,
 ) => {
-  return prisma.user.findUnique({
+  return tx.user.findUnique({
     where: {
       id: userId,
     },
@@ -144,8 +150,9 @@ export const findUserByIdRepository = async (
 export const assignIncidentRepository = async (
   incidentId: string,
   assignedToId: string,
+  tx: PrismaTransaction | typeof db = db,
 ) => {
-  return prisma.incident.update({
+  return tx.incident.update({
     where: {
       id: incidentId,
     },

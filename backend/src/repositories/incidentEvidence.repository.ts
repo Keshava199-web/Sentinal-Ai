@@ -1,4 +1,7 @@
-import prisma from "../config/prisma";
+import {
+  db,
+  PrismaExecutor,
+} from "../database/prisma";
 
 /**
  * Shared Evidence Relations
@@ -29,8 +32,9 @@ type CreateEvidenceRepositoryInput = {
  */
 export const createEvidenceRepository = async (
   data: CreateEvidenceRepositoryInput,
+  tx: PrismaExecutor = db,
 ) => {
-  return prisma.incidentEvidence.create({
+  return tx.incidentEvidence.create({
     data,
     include: evidenceRelations,
   });
@@ -41,8 +45,9 @@ export const createEvidenceRepository = async (
  */
 export const getIncidentEvidenceRepository = async (
   incidentId: string,
+  tx: PrismaExecutor = db,
 ) => {
-  return prisma.incidentEvidence.findMany({
+  return tx.incidentEvidence.findMany({
     where: {
       incidentId,
     },
@@ -58,8 +63,9 @@ export const getIncidentEvidenceRepository = async (
  */
 export const getEvidenceByIdRepository = async (
   id: string,
+  tx: PrismaExecutor = db,
 ) => {
-  return prisma.incidentEvidence.findUnique({
+  return tx.incidentEvidence.findUnique({
     where: {
       id,
     },
@@ -72,8 +78,9 @@ export const getEvidenceByIdRepository = async (
  */
 export const deleteEvidenceRepository = async (
   id: string,
+  tx: PrismaExecutor = db,
 ) => {
-  return prisma.incidentEvidence.delete({
+  return tx.incidentEvidence.delete({
     where: {
       id,
     },

@@ -1,4 +1,7 @@
-import prisma from "../config/prisma";
+import {
+  db,
+  PrismaExecutor,
+} from "../database/prisma";
 
 const commentRelations = {
   user: {
@@ -21,8 +24,9 @@ type CreateIncidentCommentRepositoryInput = {
  */
 export const createIncidentCommentRepository = async (
   data: CreateIncidentCommentRepositoryInput,
+  tx: PrismaExecutor = db,
 ) => {
-  return prisma.incidentComment.create({
+  return tx.incidentComment.create({
     data,
     include: commentRelations,
   });
@@ -33,8 +37,9 @@ export const createIncidentCommentRepository = async (
  */
 export const getIncidentCommentsRepository = async (
   incidentId: string,
+  tx: PrismaExecutor = db,
 ) => {
-  return prisma.incidentComment.findMany({
+  return tx.incidentComment.findMany({
     where: {
       incidentId,
     },

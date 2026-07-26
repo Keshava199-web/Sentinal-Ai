@@ -3,7 +3,10 @@ import {
   TimelineAction,
 } from "@prisma/client";
 
-import prisma from "../config/prisma";
+import {
+  db,
+  PrismaExecutor,
+} from "../database/prisma";
 
 type CreateTimelineEntryRepositoryInput = {
   incidentId: string;
@@ -13,22 +16,32 @@ type CreateTimelineEntryRepositoryInput = {
   metadata?: Prisma.InputJsonValue;
 };
 
+const timelineRelations = {
+  user: {
+    select: {
+      id: true,
+      email: true,
+      role: true,
+    },
+  },
+} as const;
+
 /**
  * Create Timeline Entry
  */
 export const createTimelineEntryRepository = async (
   data: CreateTimelineEntryRepositoryInput,
+  tx: PrismaExecutor = db,
 ) => {
-  return prisma.incidentTimeline.create({
+  return tx.incidentTimeline.create({
     data: {
       incidentId: data.incidentId,
       userId: data.userId ?? null,
       action: data.action,
       description: data.description,
-
-       ...(data.metadata !== undefined && {
-      metadata: data.metadata,
-    }),
+      ...(data.metadata !== undefined && {
+        metadata: data.metadata,
+      }),
     },
   });
 };
@@ -38,20 +51,13 @@ export const createTimelineEntryRepository = async (
  */
 export const getIncidentTimelineRepository = async (
   incidentId: string,
+  tx: PrismaExecutor = db,
 ) => {
-  return prisma.incidentTimeline.findMany({
+  return tx.incidentTimeline.findMany({
     where: {
       incidentId,
     },
-    include: {
-      user: {
-        select: {
-          id: true,
-          email: true,
-          role: true,
-        },
-      },
-    },
+    include: timelineRelations,
     orderBy: {
       createdAt: "asc",
     },

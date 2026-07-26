@@ -6,6 +6,9 @@ import {
 } from "@prisma/client";
 
 import { createTimelineEntryService } from "./incidentTimeline.service";
+import { createTimelineEntryRepository } from "../repositories/incidentTimeline.repository";
+
+import { withTransaction } from "../database/transaction";
 
 import {
   createIncidentRepository,
@@ -31,22 +34,30 @@ export const createIncidentService = async (
   sourceIp: string | undefined,
   reporterId: string,
 ) => {
-const incident = await createIncidentRepository({
-  title,
-  description,
-  severity,
-  sourceIp,
-  reporterId,
-});
+return withTransaction(async (tx) => {
+  const incident = await createIncidentRepository(
+    {
+      title,
+      description,
+      severity,
+      sourceIp,
+      reporterId,
+    },
+    tx,
+  );
 
-await createTimelineEntryService({
-  incidentId: incident.id,
-  userId: reporterId,
-  action: TimelineAction.CREATED,
-  description: `Incident "${incident.title}" created`,
-});
+  await createTimelineEntryRepository(
+    {
+      incidentId: incident.id,
+      userId: reporterId,
+      action: TimelineAction.CREATED,
+      description: `Incident "${incident.title}" created`,
+    },
+    tx,
+  );
 
-return incident;
+  return incident;
+});
 };
 
 /**
@@ -84,7 +95,7 @@ export const updateIncidentStatusService = async (
   const previousStatus = incident.status;
 
   if (incident.status === status) {
-    throw new Error("Incident already has this status");
+    throw new ConflictError("Incident already has this status");
   }
 
   const updatedIncident = await updateIncidentStatusRepository(id, status);
@@ -124,7 +135,7 @@ export const assignIncidentService = async (
 const incident = await getIncidentByIdRepository(incidentId);
 
 if (!incident) {
-  throw new Error("Incident not found");
+  throw new NotFoundError("Incident not found");
 }
 
 if (incident.status === IncidentStatus.CLOSED) {
@@ -132,7 +143,7 @@ if (incident.status === IncidentStatus.CLOSED) {
 }
 
 if (incident.assignedToId === assignedToId) {
-  throw new Error("Incident is already assigned to this analyst");
+  throw new ConflictError("Incident is already assigned to this analyst");
 }
 
   /**
@@ -141,7 +152,7 @@ if (incident.assignedToId === assignedToId) {
   const analyst = await findUserByIdRepository(assignedToId);
 
   if (!analyst) {
-    throw new Error("Analyst not found");
+    throw new NotFoundError("Analyst not found");
   }
 
   /**
