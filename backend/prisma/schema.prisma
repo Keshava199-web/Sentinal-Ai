@@ -8,14 +8,16 @@ datasource db {
 }
 
 model User {
-  id                String     @id @default(uuid())
-  email             String     @unique
-  password          String
-  createdAt         DateTime   @default(now())
-  role              Role       @default(VIEWER)
-  updatedAt         DateTime   @updatedAt
-  auditLogs         AuditLog[] @relation("UserAuditLogs")
-  evidence          IncidentEvidence[]
+  id                 String             @id @default(uuid())
+  email              String             @unique
+  password           String
+  createdAt          DateTime           @default(now())
+  role               Role               @default(VIEWER)
+  updatedAt          DateTime           @updatedAt
+  auditLogs          AuditLog[]         @relation("UserAuditLogs")
+  evidence           IncidentEvidence[]
+  iocs               IOC[]              @relation("CreatedIOCs")
+  linkedIncidentIOCs IncidentIOC[]      @relation("LinkedIncidentIOCs")
 
   timelineEntries IncidentTimeline[]
 
@@ -26,18 +28,17 @@ model User {
 }
 
 model Incident {
-  id              String           @id @default(uuid())
-  title           String
-  description     String
-  sourceIp        String?
-  createdAt       DateTime         @default(now())
-  assignedToId    String?
+  id           String   @id @default(uuid())
+  title        String
+  description  String
+  sourceIp     String?
+  createdAt    DateTime @default(now())
+  assignedToId String?
 
-  timeline        IncidentTimeline[]
-
-  comments        IncidentComment[]
-
-  evidence        IncidentEvidence[]
+  timeline IncidentTimeline[]
+  comments IncidentComment[]
+  evidence IncidentEvidence[]
+  iocs     IncidentIOC[]
 
   category        IncidentCategory @default(OTHER)
   destinationIp   String?
@@ -78,16 +79,16 @@ model AuditLog {
 }
 
 model IncidentTimeline {
-  id          String           @id @default(uuid())
+  id          String         @id @default(uuid())
   incidentId  String
   userId      String?
   action      TimelineAction
   description String
   metadata    Json?
-  createdAt   DateTime         @default(now())
+  createdAt   DateTime       @default(now())
 
   incident Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
-  user User? @relation(fields: [userId], references: [id])
+  user     User?    @relation(fields: [userId], references: [id])
 
   @@index([incidentId])
   @@index([createdAt])
@@ -96,15 +97,15 @@ model IncidentTimeline {
 }
 
 model IncidentComment {
-  id         String   @id @default(uuid())
+  id String @id @default(uuid())
 
   incidentId String
   userId     String
 
-  comment    String
+  comment String
 
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   incident Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
 
@@ -117,31 +118,96 @@ model IncidentComment {
 }
 
 model IncidentEvidence {
-    id  String  @id   @default(uuid())
+  id String @id @default(uuid())
 
-    incidentId    String
-    uploadedById  String
+  incidentId   String
+  uploadedById String
+  fileName     String
+  originalName String
+  mimeType     String
+  fileSize     Int
+  storagePath  String
+  sha256       String
+  uploadedAt   DateTime @default(now())
 
-    fileName      String
-    originalName  String
+  incident   Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  uploadedBy User     @relation(fields: [uploadedById], references: [id])
 
-    mimeType      String
-    fileSize      Int
+  @@index([incidentId])
+  @@index([uploadedById])
+  @@index([uploadedAt])
+  @@index([sha256])
+}
 
-    storagePath   String
+model IOC {
+  id String @id @default(uuid())
 
-    sha256        String
+  type  IOCType
+  value String  @db.Text
 
-    uploadedAt    DateTime @default(now())
+  description String? @db.Text
 
-    incident Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  severity IOCSeverity
 
-    uploadedBy User @relation(fields: [uploadedById], references: [id])
+  confidence Int @default(50)
 
-    @@index([incidentId])
-    @@index([uploadedById])
-    @@index([uploadedAt])
-    @@index([sha256])
+  firstSeen DateTime?
+
+  lastSeen DateTime?
+
+  status IOCStatus @default(ACTIVE)
+
+  source IOCSource @default(MANUAL)
+
+  createdById String
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  createdBy User @relation("CreatedIOCs", fields: [createdById], references: [id])
+
+  incidents IncidentIOC[]
+
+  deletedAt DateTime?
+
+  @@unique([type, value, source])
+  @@index([firstSeen])
+  @@index([lastSeen])
+  @@index([type])
+  @@index([value])
+  @@index([type, value])
+  @@index([severity])
+  @@index([status])
+  @@index([source])
+  @@index([createdById])
+  @@index([createdAt])
+  @@index([deletedAt])
+}
+
+model IncidentIOC {
+  incidentId String
+
+  iocId String
+
+  linkedById String
+
+  createdAt DateTime @default(now())
+
+  incident Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  ioc IOC @relation(fields: [iocId], references: [id], onDelete: Cascade)
+
+  linkedBy User @relation("LinkedIncidentIOCs", fields: [linkedById], references: [id])
+
+  notes String? @db.Text
+
+  @@id([incidentId, iocId])
+  @@index([iocId])
+  @@index([linkedById])
+  @@index([createdAt])
+  @@index([incidentId, createdAt])
+  @@index([iocId, createdAt])
 }
 
 enum Role {
@@ -215,4 +281,43 @@ enum TimelineAction {
   EVIDENCE_UPLOADED
   REOPENED
   CLOSED
+}
+
+enum IOCType {
+  IP
+  DOMAIN
+  URL
+  EMAIL
+  SHA256
+  SHA1
+  MD5
+  FILE_NAME
+  CVE
+  MITRE_TECHNIQUE
+}
+
+enum IOCSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum IOCStatus {
+  ACTIVE
+  WHITELISTED
+  FALSE_POSITIVE
+  EXPIRED
+}
+
+enum IOCSource {
+  MANUAL
+  VIRUSTOTAL
+  ABUSEIPDB
+  OTX
+  MISP
+  WAZUH
+  SPLUNK
+  AI_ENGINE
+  OTHER
 }
