@@ -15,6 +15,12 @@ model User {
   role              Role       @default(VIEWER)
   updatedAt         DateTime   @updatedAt
   auditLogs         AuditLog[] @relation("UserAuditLogs")
+  evidence          IncidentEvidence[]
+
+  timelineEntries IncidentTimeline[]
+
+  comments IncidentComment[]
+
   assignedIncidents Incident[] @relation("AssignedIncidents")
   reportedIncidents Incident[] @relation("ReportedIncidents")
 }
@@ -26,6 +32,13 @@ model Incident {
   sourceIp        String?
   createdAt       DateTime         @default(now())
   assignedToId    String?
+
+  timeline        IncidentTimeline[]
+
+  comments        IncidentComment[]
+
+  evidence        IncidentEvidence[]
+
   category        IncidentCategory @default(OTHER)
   destinationIp   String?
   detectionSource DetectionSource  @default(MANUAL)
@@ -62,6 +75,73 @@ model AuditLog {
 
   @@index([userId])
   @@index([incidentId])
+}
+
+model IncidentTimeline {
+  id          String           @id @default(uuid())
+  incidentId  String
+  userId      String?
+  action      TimelineAction
+  description String
+  metadata    Json?
+  createdAt   DateTime         @default(now())
+
+  incident Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([incidentId])
+  @@index([createdAt])
+  @@index([action])
+  @@index([incidentId, createdAt])
+}
+
+model IncidentComment {
+  id         String   @id @default(uuid())
+
+  incidentId String
+  userId     String
+
+  comment    String
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  incident Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([incidentId])
+  @@index([userId])
+  @@index([createdAt])
+  @@index([incidentId, createdAt])
+}
+
+model IncidentEvidence {
+    id  String  @id   @default(uuid())
+
+    incidentId    String
+    uploadedById  String
+
+    fileName      String
+    originalName  String
+
+    mimeType      String
+    fileSize      Int
+
+    storagePath   String
+
+    sha256        String
+
+    uploadedAt    DateTime @default(now())
+
+    incident Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+    uploadedBy User @relation(fields: [uploadedById], references: [id])
+
+    @@index([incidentId])
+    @@index([uploadedById])
+    @@index([uploadedAt])
+    @@index([sha256])
 }
 
 enum Role {
@@ -125,4 +205,14 @@ enum AuditAction {
   INCIDENT_VIEWED
   INCIDENTS_VIEWED
   AUDIT_LOGS_VIEWED
+}
+
+enum TimelineAction {
+  CREATED
+  ASSIGNED
+  STATUS_CHANGED
+  COMMENT_ADDED
+  EVIDENCE_UPLOADED
+  REOPENED
+  CLOSED
 }

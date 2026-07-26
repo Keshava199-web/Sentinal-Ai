@@ -2,7 +2,7 @@ import { Router } from "express";
 
 import { register, login } from "../controllers/auth.controller";
 
-import authLimiter from "../middleware/rateLimit.middleware";
+import { authLimiter } from "../middleware/rateLimit.middleware";
 
 import validate from "../middleware/validate.middleware";
 

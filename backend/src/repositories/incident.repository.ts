@@ -6,27 +6,53 @@ import {
 import prisma from "../config/prisma";
 
 /**
+ * Shared Incident Relations
+ * Prevents exposing sensitive user fields
+ */
+const incidentRelations = {
+  reporter: {
+    select: {
+      id: true,
+      email: true,
+      role: true,
+    },
+  },
+  assignedTo: {
+    select: {
+      id: true,
+      email: true,
+      role: true,
+    },
+  },
+} as const;
+
+/**
  * Create Incident
  */
+type CreateIncidentRepositoryInput = {
+  title: string;
+  description: string;
+  severity: IncidentSeverity;
+  sourceIp: string | undefined;
+  reporterId: string;
+};
+
 export const createIncidentRepository = async (
-  title: string,
-  description: string,
-  severity: IncidentSeverity,
-  sourceIp: string | undefined,
-  reporterId: string,
+  data: CreateIncidentRepositoryInput,
 ) => {
   return prisma.incident.create({
     data: {
-      title,
-      description,
-      severity,
-      sourceIp: sourceIp ?? null,
+      title: data.title,
+      description: data.description,
+      severity: data.severity,
+      sourceIp: data.sourceIp ?? null,
       reporter: {
         connect: {
-          id: reporterId,
+          id: data.reporterId,
         },
       },
     },
+    include: incidentRelations,
   });
 };
 
@@ -43,10 +69,7 @@ export const getIncidentsRepository = async (
     orderBy: {
       createdAt: "desc",
     },
-    include: {
-      reporter: true,
-      assignedTo: true,
-    },
+    include: incidentRelations,
   });
 };
 
@@ -60,10 +83,7 @@ export const getIncidentByIdRepository = async (
     where: {
       id,
     },
-    include: {
-      reporter: true,
-      assignedTo: true,
-    },
+    include: incidentRelations,
   });
 };
 
@@ -107,9 +127,17 @@ export const findUserByIdRepository = async (
     where: {
       id: userId,
     },
+     select: {
+        id: true,
+        email: true,
+        role: true,
+    },
   });
 };
 
+/**
+ * Assign Incident
+ */
 /**
  * Assign Incident
  */
@@ -123,11 +151,7 @@ export const assignIncidentRepository = async (
     },
     data: {
       assignedToId,
-      // assignedAt: new Date(), // Enable after schema migration
     },
-    include: {
-      reporter: true,
-      assignedTo: true,
-    },
+    include: incidentRelations,
   });
 };

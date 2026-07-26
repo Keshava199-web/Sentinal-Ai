@@ -1,7 +1,11 @@
 import { Request, Response, NextFunction } from "express";
 
+import { AppError } from "../errors/AppError";
+
+import { logger } from "../utils/logger";
+
 /**
- * Global error middleware
+ * Global Error Middleware
  */
 const errorMiddleware = (
   error: Error,
@@ -10,29 +14,41 @@ const errorMiddleware = (
   next: NextFunction,
 ) => {
   /**
-   * Prevent headers-sent issues
+   * Prevent duplicate responses
    */
   if (res.headersSent) {
     return next(error);
   }
 
   /**
-   * Server-side logging
+   * Log error
    */
-  console.error("[GLOBAL_ERROR]", {
+  logger.error("Unhandled application error", {
     message: error.message,
-    stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
     path: req.originalUrl,
     method: req.method,
-    timestamp: new Date().toISOString(),
+    stack:
+      process.env.NODE_ENV === "development"
+        ? error.stack
+        : undefined,
   });
 
   /**
-   * Generic secure response
+   * Custom application errors
+   */
+  if (error instanceof AppError) {
+    return res.status(error.statusCode).json({
+      success: false,
+      message: error.message,
+    });
+  }
+
+  /**
+   * Unexpected errors
    */
   return res.status(500).json({
     success: false,
-    message: "Internal server error",
+    message: "Internal Server Error",
   });
 };
 
