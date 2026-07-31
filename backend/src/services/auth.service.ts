@@ -1,32 +1,37 @@
 import bcrypt from "bcryptjs";
-
 import jwt from "jsonwebtoken";
-
 import { Role } from "@prisma/client";
 
 import { env } from "../config/env";
+import {
+  JWT_CONFIG,
+  PASSWORD_CONFIG,
+} from "../constants/auth.constants";
 
-/**
- * Hash password
- */
-export const hashPassword = async (password: string) => {
-  return bcrypt.hash(password, 12);
+export const hashPassword = async (
+  password: string
+): Promise<string> => {
+  return bcrypt.hash(
+    password,
+    PASSWORD_CONFIG.SALT_ROUNDS
+  );
 };
 
-/**
- * Compare password
- */
 export const comparePassword = async (
   password: string,
-  hashedPassword: string,
-) => {
-  return bcrypt.compare(password, hashedPassword);
+  hashedPassword: string
+): Promise<boolean> => {
+  return bcrypt.compare(
+    password,
+    hashedPassword
+  );
 };
 
-/**
- * Generate JWT
- */
-export const generateToken = (userId: string, email: string, role: Role) => {
+export const generateToken = (
+  userId: string,
+  email: string,
+  role: Role
+): string => {
   return jwt.sign(
     {
       userId,
@@ -35,9 +40,9 @@ export const generateToken = (userId: string, email: string, role: Role) => {
     },
     env.JWT_SECRET,
     {
-      expiresIn: "15m",
-      issuer: "sentinel-ai",
-      audience: "sentinel-ai-users",
-    },
+      expiresIn: JWT_CONFIG.ACCESS_TOKEN_EXPIRES_IN,
+      issuer: JWT_CONFIG.ISSUER,
+      audience: JWT_CONFIG.AUDIENCE,
+    }
   );
 };

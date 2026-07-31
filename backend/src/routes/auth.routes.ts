@@ -33,17 +33,13 @@ const router = Router();
  *             required:
  *               - email
  *               - password
- *               - role
  *             properties:
  *               email:
  *                 type: string
- *                 example: admin@gmail.com
+ *                 example: analyst@sentinel-ai.com
  *               password:
  *                 type: string
  *                 example: Admin@123
- *               role:
- *                 type: string
- *                 example: ADMIN
  *     responses:
  *       201:
  *         description: User registered successfully
