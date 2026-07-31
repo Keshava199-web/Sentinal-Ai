@@ -1,5 +1,7 @@
 "use client";
 
+import { Toaster } from "sonner";
+
 import { TooltipProvider } from "@/components/ui/tooltip";
 
 import { QueryProvider } from "./query-provider";
@@ -22,6 +24,11 @@ export function AppProviders({
       <QueryProvider>
         <TooltipProvider>
           {children}
+
+          <Toaster
+            richColors
+            position="top-right"
+          />
         </TooltipProvider>
       </QueryProvider>
     </ThemeProvider>

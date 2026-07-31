@@ -17,8 +17,13 @@ api.interceptors.request.use((config) => {
     if (persistedStore) {
       const { state } = JSON.parse(persistedStore);
 
-      if (state.token) {
-        config.headers.Authorization = `Bearer ${state.token}`;
+      const token = state?.token;
+
+      if (token) {
+        config.headers = config.headers ?? {};
+
+        config.headers.Authorization =
+          `Bearer ${token}`;
       }
     }
   }
