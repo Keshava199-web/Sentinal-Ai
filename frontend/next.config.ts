@@ -1,3 +1,4 @@
+import path from "node:path";
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
@@ -10,6 +11,10 @@ const nextConfig: NextConfig = {
       "lucide-react",
       "framer-motion",
     ],
+  },
+
+  turbopack: {
+    root: path.resolve(__dirname),
   },
 };
 

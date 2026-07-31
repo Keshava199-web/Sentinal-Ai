@@ -13,6 +13,12 @@
     "isolatedModules": true,
     "jsx": "react-jsx",
     "incremental": true,
+
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "exactOptionalPropertyTypes": true,
+    "forceConsistentCasingInFileNames": true,
+
     "plugins": [
       {
         "name": "next"
@@ -31,9 +37,4 @@
     "**/*.mts"
   ],
   "exclude": ["node_modules"]
-
-  "noUnusedLocals": true,
-  "noUnusedParameters": true,
-  "exactOptionalPropertyTypes": true,
-  "forceConsistentCasingInFileNames": true
 }
