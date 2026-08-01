@@ -1,9 +1,14 @@
 import { z } from "zod";
 
+import {
+  INCIDENT_SEVERITIES,
+  INCIDENT_STATUSES,
+} from "../constants/incident.constants";
+
 /**
  * Shared Incident Severity Enum
  */
-export const IncidentSeverity = ["LOW", "MEDIUM", "HIGH", "CRITICAL"] as const;
+
 
 /**
  * Create incident schema
@@ -22,7 +27,7 @@ export const createIncidentSchema = z
       .min(10, "Description too short")
       .max(5000, "Description too long"),
 
-    severity: z.enum(IncidentSeverity),
+    severity: z.enum(INCIDENT_SEVERITIES),
 
     sourceIp: z
       .string()
@@ -42,7 +47,7 @@ export const createIncidentSchema = z
  */
 export const updateIncidentSchema = z
   .object({
-    status: z.enum(["OPEN", "INVESTIGATING", "RESOLVED", "CLOSED",]),
+    status: z.enum(INCIDENT_STATUSES),
   })
   .strict();
 
@@ -63,9 +68,9 @@ export const incidentQuerySchema = z.object({
       message: "Limit must be between 1 and 100",
     }),
 
-  severity: z.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]).optional(),
 
-  status: z.enum(["OPEN", "INVESTIGATING", "RESOLVED", "CLOSED"]).optional(),
+  severity: z.enum(INCIDENT_SEVERITIES).optional(),
+  status: z.enum(INCIDENT_STATUSES).optional(),
 
   search: z.string().trim().max(100).optional(),
 })

@@ -4,6 +4,10 @@ import {
   NextFunction,
 } from "express";
 
+import { toAuthResponseDto } from "../dto/auth/auth.dto";
+import { successResponse, errorResponse } from "../utils/apiResponse";
+import { HTTP_STATUS } from "../constants/http.constants";
+
 // import { Role } from "@prisma/client";
 
 // import { buildUserResponse } from "../utils/userResponse";
@@ -58,11 +62,11 @@ export const register = async (
      * Prevent duplicate accounts
      */
     if (existingUser) {
-      return res.status(409).json({
-        success: false,
-        message:
-          "Registration failed",
-      });
+      return errorResponse(
+        res,
+        HTTP_STATUS.CONFLICT,
+        "Registration failed",
+      );
     }
 
     /**
@@ -105,18 +109,12 @@ export const register = async (
     /**
      * Success response
      */
-    return res.status(201).json({
-      success: true,
-      message:
-        "User registered successfully",
-      token,
-      user: {
-        id: user.id,
-        email: user.email,
-        role: user.role,
-        createdAt: user.createdAt,
-      },
-    });
+    return successResponse(
+      res,
+      HTTP_STATUS.CREATED,
+      "User registered successfully",
+      toAuthResponseDto(token, user),
+    );
   } catch (error) {
     console.error(
       "[REGISTER_ERROR]",
@@ -167,11 +165,11 @@ export const login = async (
      * Prevent user enumeration
      */
     if (!user) {
-      return res.status(401).json({
-        success: false,
-        message:
-          "Invalid credentials",
-      });
+      return errorResponse(
+        res,
+        HTTP_STATUS.UNAUTHORIZED,
+        "Invalid credentials",
+      );
     }
 
     /**
@@ -187,11 +185,11 @@ export const login = async (
      * Invalid password
      */
     if (!isPasswordValid) {
-      return res.status(401).json({
-        success: false,
-        message:
-          "Invalid credentials",
-      });
+      return errorResponse(
+        res,
+        HTTP_STATUS.UNAUTHORIZED,
+        "Invalid credentials",
+      );
     }
 
     /**
@@ -215,19 +213,12 @@ export const login = async (
     /**
      * Success response
      */
-    return res.status(200).json({
-      success: true,
-      message:
-        "Login successful",
-      token,
-      user: {
-        id: user.id,
-        email: user.email,
-        role: user.role,
-        createdAt:
-          user.createdAt,
-      },
-    });
+    return successResponse(
+      res,
+      HTTP_STATUS.OK,
+      "Login successful",
+      toAuthResponseDto(token, user),
+    );
   } catch (error) {
     console.error(
       "[LOGIN_ERROR]",
