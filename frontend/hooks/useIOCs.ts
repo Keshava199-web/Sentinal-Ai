@@ -1,26 +1,35 @@
-// import { useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 
-// import { getIOCs } from "@/services/ioc.service";
+import { getIOCs } from "@/services/ioc.service";
 
-// import { queryKeys } from "@/lib/queryKeys";
+import { queryKeys } from "@/lib/queryKeys";
 
-// import type {
-//   IOCQueryParams,
-// } from "@/types/ioc";
+import type {
+  IOCQueryParams,
+} from "@/types/ioc";
 
-// export function useIOCs(
-//   params?: IOCQueryParams,
-// ) {
-//   return useQuery({
-//     queryKey: [...queryKeys.iocs, params],
+/**
+ * =========================================================
+ * FETCH IOC LIST
+ * =========================================================
+ */
 
-//     queryFn: () =>
-//       getIOCs(params),
+export function useIOCs(
+  params?: IOCQueryParams,
+) {
+  return useQuery({
+    queryKey: [
+      ...queryKeys.iocs,
+      params,
+    ],
 
-//     staleTime: 60 * 1000,
+    queryFn: () =>
+      getIOCs(params),
 
-//     retry: 1,
+    staleTime: 60 * 1000,
 
-//     refetchOnWindowFocus: false,
-//   });
-// }
+    retry: 1,
+
+    refetchOnWindowFocus: false,
+  });
+}

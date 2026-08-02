@@ -1,24 +1,33 @@
-// import { useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 
-// import { getIOCById } from "@/services/ioc.service";
+import { getIOCById } from "@/services/ioc.service";
 
-// import { queryKeys } from "@/lib/queryKeys";
+import { queryKeys } from "@/lib/queryKeys";
 
-// export function useIOC(
-//   id: string,
-// ) {
-//   return useQuery({
-//     queryKey: [...queryKeys.iocs, id],
+/**
+ * =========================================================
+ * FETCH IOC
+ * =========================================================
+ */
 
-//     queryFn: () =>
-//       getIOCById(id),
+export function useIOC(
+  id: string,
+) {
+  return useQuery({
+    queryKey: [
+      ...queryKeys.iocs,
+      id,
+    ],
 
-//     enabled: !!id,
+    queryFn: () =>
+      getIOCById(id),
 
-//     staleTime: 60 * 1000,
+    enabled: !!id,
 
-//     retry: 1,
+    staleTime: 60 * 1000,
 
-//     refetchOnWindowFocus: false,
-//   });
-// }
+    retry: 1,
+
+    refetchOnWindowFocus: false,
+  });
+}
