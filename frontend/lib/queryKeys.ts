@@ -2,7 +2,7 @@ export const queryKeys = {
   incidents: ["incidents"] as const,
 
   incident: (id: string) =>
-    ["incident", id] as const,
+    [...queryKeys.incidents, id] as const,
 
   users: ["users"] as const,
 

@@ -17,10 +17,10 @@ import type {
 
 import type { ActionHandler } from "@/types/common";
 
+import Link from "next/link";
+
 interface IncidentRowProps {
   incident: Incident;
-
-  onView?: ActionHandler<Incident>;
 
   onEdit?: ActionHandler<Incident>;
 
@@ -29,7 +29,6 @@ interface IncidentRowProps {
 
 export default function IncidentRow({
   incident,
-  onView,
   onEdit,
   onDelete,
 }: IncidentRowProps) {
@@ -67,15 +66,17 @@ export default function IncidentRow({
 
       <td className="px-4 py-3">
         <div className="flex gap-2">
-          <Button
-            size="icon"
-            variant="ghost"
-            onClick={() =>
-              onView?.(incident)
-            }
+          <Link
+            href={`/dashboard/incidents/${incident.id}`}
+            aria-label="View incident"
           >
-            <Eye className="h-4 w-4" />
-          </Button>
+            <Button
+              size="icon"
+              variant="ghost"
+            >
+              <Eye className="h-4 w-4" />
+            </Button>
+          </Link>
 
           <Button
             size="icon"

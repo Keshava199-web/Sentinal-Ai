@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { getIncidentById } from "@/services/incident.service";
-
 import { queryKeys } from "@/lib/queryKeys";
 
 export function useIncident(
@@ -18,5 +17,7 @@ export function useIncident(
     staleTime: 60 * 1000,
 
     retry: 1,
+
+    refetchOnWindowFocus: false,
   });
 }

@@ -3,11 +3,6 @@ import type {
   PaginatedApiResponse,
 } from "@/types/shared/api";
 
-import {
-  INCIDENT_SEVERITIES,
-  INCIDENT_STATUSES,
-} from "@/types/incident";
-
 /**
  * =========================================================
  * INCIDENT TYPES
@@ -94,32 +89,8 @@ export interface IncidentQueryParams {
  * =========================================================
  */
 
-export type IncidentResponse = ApiResponse<Incident>;
-export type IncidentListResponse = PaginatedApiResponse<Incident>;
+export type IncidentResponse =
+  ApiResponse<Incident>;
 
-export const createIncidentSchema = z.object({
-  title: z.string().trim().min(5).max(150),
-
-  description: z
-    .string()
-    .trim()
-    .min(10)
-    .max(5000),
-
-  severity: z.enum(INCIDENT_SEVERITIES),
-
-  sourceIp: z
-    .string()
-    .trim()
-    .optional(),
-});
-
-export const updateIncidentSchema = z.object({
-  status: z.enum(INCIDENT_STATUSES),
-});
-
-export type CreateIncidentFormValues =
-  z.infer<typeof createIncidentSchema>;
-
-export type UpdateIncidentFormValues =
-  z.infer<typeof updateIncidentSchema>;
+export type IncidentListResponse =
+  PaginatedApiResponse<Incident>;
