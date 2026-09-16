@@ -1,4 +1,5 @@
 import AuthGuard from "@/guards/AuthGuard";
+import SentinelShell from "@/components/layout/SentinelShell";
 
 type DashboardLayoutProps = {
   children: React.ReactNode;
@@ -9,7 +10,7 @@ export default function DashboardLayout({
 }: DashboardLayoutProps) {
   return (
     <AuthGuard>
-      {children}
+      <SentinelShell>{children}</SentinelShell>
     </AuthGuard>
   );
 }

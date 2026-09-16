@@ -8,10 +8,6 @@ import { toAuthResponseDto } from "../dto/auth/auth.dto";
 import { successResponse, errorResponse } from "../utils/apiResponse";
 import { HTTP_STATUS } from "../constants/http.constants";
 
-// import { Role } from "@prisma/client";
-
-// import { buildUserResponse } from "../utils/userResponse";
-
 import {
   hashPassword,
   comparePassword,

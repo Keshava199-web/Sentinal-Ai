@@ -31,6 +31,13 @@ const incidentRelations = {
       createdAt: true,
     },
   },
+  linkedBy: {
+    select: {
+      id: true,
+      email: true,
+      role: true,
+    },
+  },
 } as const;
 
 type LinkIOCRepositoryInput = {

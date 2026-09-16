@@ -1,80 +1,84 @@
 import { Request, Response, NextFunction } from "express";
-
 import jwt from "jsonwebtoken";
 
 import { Role } from "@prisma/client";
 
-/**
- * Validate JWT secret
- */
-const JWT_SECRET = process.env.JWT_SECRET;
-
-if (!JWT_SECRET) {
-  throw new Error("JWT_SECRET is missing");
-}
+import { env } from "../config/env";
+import { JWT_CONFIG } from "../constants/auth.constants";
 
 /**
  * JWT Authentication Middleware
+ *
+ * Verifies access tokens issued by Sentinel-AI.
  */
-export const protect = (req: Request, res: Response, next: NextFunction) => {
+export const protect = (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): void => {
   try {
-    /**
-     * Get authorization header
-     */
     const authHeader = req.headers.authorization;
 
-    /**
-     * Validate authorization header
-     */
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         message: "Unauthorized",
       });
+      return;
     }
 
-    /**
-     * Extract token
-     */
-    const token = authHeader.split(" ")[1];
+    const token = authHeader.slice("Bearer ".length).trim();
 
-    /**
-     * Validate token existence
-     */
     if (!token) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         message: "Unauthorized",
       });
+      return;
     }
 
-    /**
-     * Verify JWT
-     */
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, env.JWT_SECRET, {
+      issuer: JWT_CONFIG.ISSUER,
+      audience: JWT_CONFIG.AUDIENCE,
+    });
 
-    /**
-     * Validate decoded payload
-     */
     if (
-      !decoded ||
       typeof decoded !== "object" ||
+      decoded === null ||
       !("userId" in decoded) ||
       !("email" in decoded) ||
       !("role" in decoded)
     ) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         message: "Invalid token payload",
       });
+      return;
     }
 
-    /**
-     * Attach user to request
-     */
+    if (
+      typeof decoded.userId !== "string" ||
+      typeof decoded.email !== "string" ||
+      typeof decoded.role !== "string"
+    ) {
+      res.status(401).json({
+        success: false,
+        message: "Invalid token payload",
+      });
+      return;
+    }
+
+    if (!Object.values(Role).includes(decoded.role as Role)) {
+      res.status(401).json({
+        success: false,
+        message: "Invalid token role",
+      });
+      return;
+    }
+
     req.user = {
-      userId: String(decoded.userId),
-      email: String(decoded.email),
+      userId: decoded.userId,
+      email: decoded.email,
       role: decoded.role as Role,
     };
 
@@ -85,7 +89,7 @@ export const protect = (req: Request, res: Response, next: NextFunction) => {
       error instanceof Error ? error.message : "Unknown error",
     );
 
-    return res.status(401).json({
+    res.status(401).json({
       success: false,
       message: "Invalid token",
     });

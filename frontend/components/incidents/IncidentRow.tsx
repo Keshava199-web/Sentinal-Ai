@@ -1,29 +1,19 @@
 "use client";
 
-import {
-  Eye,
-  Pencil,
-  Trash2,
-} from "lucide-react";
+import Link from "next/link";
+import { ArrowUpRight, Eye, Pencil, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
 import SeverityBadge from "./SeverityBadge";
 import StatusBadge from "./StatusBadge";
 
-import type {
-  Incident,
-} from "@/types/incident";
-
+import type { Incident } from "@/types/incident";
 import type { ActionHandler } from "@/types/common";
-
-import Link from "next/link";
 
 interface IncidentRowProps {
   incident: Incident;
-
   onEdit?: ActionHandler<Incident>;
-
   onDelete?: ActionHandler<Incident>;
 }
 
@@ -33,70 +23,113 @@ export default function IncidentRow({
   onDelete,
 }: IncidentRowProps) {
   return (
-    <tr className="border-b transition-colors hover:bg-muted/50">
-      <td className="px-4 py-3 font-mono text-xs">
-        {incident.id.slice(0, 8)}
+    <tr className="group border-b border-white/[0.06] transition-colors duration-200 last:border-b-0 hover:bg-white/[0.035]">
+      {/* Incident */}
+      <td className="px-5 py-4">
+        <Link
+          href={`/dashboard/incidents/${incident.id}`}
+          className="group/incident block min-w-[220px]"
+        >
+          <div className="flex items-center gap-3">
+            <span className="font-mono text-[10px] text-white/25">
+              {incident.id.slice(0, 8)}
+            </span>
+
+            <ArrowUpRight
+              className="h-3.5 w-3.5 text-white/15 opacity-0 transition-all duration-200 group-hover/incident:-translate-y-0.5 group-hover/incident:translate-x-0.5 group-hover/incident:text-white/55 group-hover/incident:opacity-100"
+              strokeWidth={1.5}
+            />
+          </div>
+
+          <p className="mt-1.5 max-w-[280px] truncate text-sm font-medium text-white/75 transition-colors group-hover/incident:text-white">
+            {incident.title}
+          </p>
+        </Link>
       </td>
 
-      <td className="px-4 py-3">
-        {incident.title}
+      {/* Severity */}
+      <td className="whitespace-nowrap px-5 py-4">
+        <SeverityBadge severity={incident.severity} />
       </td>
 
-      <td className="px-4 py-3">
-        <SeverityBadge
-          severity={incident.severity}
-        />
+      {/* Status */}
+      <td className="whitespace-nowrap px-5 py-4">
+        <StatusBadge status={incident.status} />
       </td>
 
-      <td className="px-4 py-3">
-        <StatusBadge
-          status={incident.status}
-        />
+      {/* Assigned */}
+      <td className="px-5 py-4">
+        <span
+          title={incident.assignedToId ?? undefined}
+          className="block max-w-[160px] truncate font-mono text-[11px] text-white/35"
+        >
+          {incident.assignedToId
+            ? incident.assignedToId.slice(0, 12)
+            : "Unassigned"}
+        </span>
       </td>
 
-      <td className="px-4 py-3">
-        {incident.assignedToId ?? "—"}
+      {/* Created */}
+      <td className="whitespace-nowrap px-5 py-4">
+        <time
+          dateTime={incident.createdAt}
+          className="text-xs text-white/35"
+        >
+          {new Date(incident.createdAt).toLocaleString()}
+        </time>
       </td>
 
-      <td className="px-4 py-3 text-sm text-muted-foreground">
-        {new Date(
-          incident.createdAt,
-        ).toLocaleString()}
-      </td>
-
-      <td className="px-4 py-3">
-        <div className="flex gap-2">
+      {/* Actions */}
+      <td className="px-5 py-4">
+        <div className="flex justify-end gap-1 opacity-70 transition-opacity duration-200 group-hover:opacity-100">
           <Link
             href={`/dashboard/incidents/${incident.id}`}
-            aria-label="View incident"
+            aria-label={`View incident ${incident.id.slice(0, 8)}`}
           >
             <Button
+              type="button"
               size="icon"
               variant="ghost"
+              className="h-8 w-8 rounded-lg text-white/35 hover:bg-white/[0.07] hover:text-white"
             >
-              <Eye className="h-4 w-4" />
+              <Eye
+                className="h-3.5 w-3.5"
+                strokeWidth={1.6}
+              />
             </Button>
           </Link>
 
-          <Button
-            size="icon"
-            variant="ghost"
-            onClick={() =>
-              onEdit?.(incident)
-            }
-          >
-            <Pencil className="h-4 w-4" />
-          </Button>
+          {onEdit && (
+            <Button
+              type="button"
+              size="icon"
+              variant="ghost"
+              aria-label="Edit incident"
+              className="h-8 w-8 rounded-lg text-white/35 hover:bg-white/[0.07] hover:text-white"
+              onClick={() => onEdit(incident)}
+            >
+              <Pencil
+                className="h-3.5 w-3.5"
+                strokeWidth={1.6}
+              />
+            </Button>
+          )}
 
-          <Button
-            size="icon"
-            variant="ghost"
-            onClick={() =>
-              onDelete?.(incident)
-            }
-          >
-            <Trash2 className="h-4 w-4 text-destructive" />
-          </Button>
+          {onDelete && (
+            <Button
+              type="button"
+              size="icon"
+              variant="ghost"
+              aria-label="Delete incident"
+              className="h-8 w-8 rounded-lg text-white/35 hover:bg-red-500/[0.08] hover:text-red-300"
+              onClick={() => onDelete(incident)}
+            >
+              <Trash2
+                className="h-3.5 w-3.5"
+                strokeWidth={1.6}
+              />
+            </Button>
+          )}
         </div>
       </td>
     </tr>

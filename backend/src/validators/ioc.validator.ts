@@ -1,5 +1,4 @@
 import { z } from "zod";
-
 import {
   IOCSeverity,
   IOCSource,
@@ -10,69 +9,52 @@ import {
  * Create IOC
  */
 export const createIOCSchema = z.object({
-  body: z.object({
-    type: z.nativeEnum(IOCType),
+  type: z.enum(IOCType),
 
-    value: z
-      .string()
-      .trim()
-      .min(1, "IOC value is required")
-      .max(2048, "IOC value is too long"),
+  value: z
+    .string()
+    .trim()
+    .min(1, "IOC value is required")
+    .max(2048, "IOC value is too long"),
 
-    description: z
-      .string()
-      .trim()
-      .max(2000, "Description is too long")
-      .optional(),
+  description: z
+    .string()
+    .trim()
+    .max(2000, "Description is too long")
+    .optional(),
 
-    severity: z.nativeEnum(IOCSeverity),
+  severity: z.enum(IOCSeverity),
 
-    confidence: z
-        .number()
-        .int()
-        .min(0, "Confidence must be at least 0")
-        .max(100, "Confidence cannot exceed 100"),
+  confidence: z
+    .number({
+      error: "Confidence must be a number",
+    })
+    .int()
+    .min(0, "Confidence must be at least 0")
+    .max(100, "Confidence cannot exceed 100"),
 
-    source: z.nativeEnum(IOCSource),
-  }),
+  source: z.enum(IOCSource),
 });
 
 /**
  * Get IOC By ID
  */
 export const getIOCByIdSchema = z.object({
-  params: z.object({
-    id: z.uuid("Invalid IOC ID"),
-  }),
+  id: z.uuid("Invalid IOC ID"),
 });
 
 /**
  * Delete IOC
  */
 export const deleteIOCSchema = z.object({
-  params: z.object({
-    id: z.uuid("Invalid IOC ID"),
-  }),
+  id: z.uuid("Invalid IOC ID"),
 });
 
 /**
  * Get IOC List
  */
 export const getIOCsSchema = z.object({
-  query: z.object({
-    page: z
-      .coerce
-      .number()
-      .int()
-      .min(1)
-      .default(1),
+  page: z.coerce.number().int().min(1).default(1),
 
-    limit: z
-      .coerce
-      .number()
-      .int()
-      .min(1)
-      .max(100)
-      .default(10),
-  }),
+  limit: z.coerce.number().int().min(1).max(100).default(10),
 });

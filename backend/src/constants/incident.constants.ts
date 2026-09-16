@@ -1,22 +1,24 @@
+import {
+  AlertSeverity,
+  IncidentStatus as PrismaIncidentStatus,
+} from "@prisma/client";
+
 export const INCIDENT_SEVERITIES = [
-  "LOW",
-  "MEDIUM",
-  "HIGH",
-  "CRITICAL",
+  AlertSeverity.LOW,
+  AlertSeverity.MEDIUM,
+  AlertSeverity.HIGH,
+  AlertSeverity.CRITICAL,
 ] as const;
 
 export const INCIDENT_STATUSES = [
-  "OPEN",
-  "TRIAGED",
-  "INVESTIGATING",
-  "CONTAINED",
-  "ERADICATED",
-  "RECOVERED",
-  "CLOSED",
+  PrismaIncidentStatus.OPEN,
+  PrismaIncidentStatus.TRIAGED,
+  PrismaIncidentStatus.INVESTIGATING,
+  PrismaIncidentStatus.CONTAINED,
+  PrismaIncidentStatus.ERADICATED,
+  PrismaIncidentStatus.RECOVERED,
+  PrismaIncidentStatus.CLOSED,
 ] as const;
 
-export type IncidentSeverity =
-  typeof INCIDENT_SEVERITIES[number];
-
-export type IncidentStatus =
-  typeof INCIDENT_STATUSES[number];
+export type IncidentSeverity = AlertSeverity;
+export type IncidentStatus = PrismaIncidentStatus;

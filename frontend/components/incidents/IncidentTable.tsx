@@ -10,61 +10,62 @@ import {
 
 import IncidentRow from "./IncidentRow";
 
-import type {
-  Incident,
-} from "@/types/incident";
-
+import type { Incident } from "@/types/incident";
 import type { ActionHandler } from "@/types/common";
 
 interface IncidentTableProps {
   incidents: Incident[];
-
-  onView?: ActionHandler<Incident>;
-
   onEdit?: ActionHandler<Incident>;
-
   onDelete?: ActionHandler<Incident>;
 }
 
 export default function IncidentTable({
   incidents,
-  onView,
   onEdit,
   onDelete,
 }: IncidentTableProps) {
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>ID</TableHead>
+    <div className="w-full overflow-x-auto">
+      <Table>
+        <TableHeader>
+          <TableRow className="border-b border-white/[0.08] hover:bg-transparent">
+            <TableHead className="px-5 py-3 text-[9px] font-medium uppercase tracking-[0.18em] text-white/25">
+              Incident
+            </TableHead>
 
-          <TableHead>Title</TableHead>
+            <TableHead className="px-5 py-3 text-[9px] font-medium uppercase tracking-[0.18em] text-white/25">
+              Severity
+            </TableHead>
 
-          <TableHead>Severity</TableHead>
+            <TableHead className="px-5 py-3 text-[9px] font-medium uppercase tracking-[0.18em] text-white/25">
+              Status
+            </TableHead>
 
-          <TableHead>Status</TableHead>
+            <TableHead className="px-5 py-3 text-[9px] font-medium uppercase tracking-[0.18em] text-white/25">
+              Assigned
+            </TableHead>
 
-          <TableHead>Assigned</TableHead>
+            <TableHead className="px-5 py-3 text-[9px] font-medium uppercase tracking-[0.18em] text-white/25">
+              Created
+            </TableHead>
 
-          <TableHead>Created</TableHead>
+            <TableHead className="px-5 py-3 text-right text-[9px] font-medium uppercase tracking-[0.18em] text-white/25">
+              Actions
+            </TableHead>
+          </TableRow>
+        </TableHeader>
 
-          <TableHead className="text-right">
-            Actions
-          </TableHead>
-        </TableRow>
-      </TableHeader>
-
-      <TableBody>
-        {incidents.map((incident) => (
+        <TableBody>
+          {incidents.map((incident) => (
             <IncidentRow
-            key={incident.id}
-            incident={incident}
-            {...(onView ? { onView } : {})}
-            {...(onEdit ? { onEdit } : {})}
-            {...(onDelete ? { onDelete } : {})}
+              key={incident.id}
+              incident={incident}
+              {...(onEdit ? { onEdit } : {})}
+              {...(onDelete ? { onDelete } : {})}
             />
-        ))}
+          ))}
         </TableBody>
-    </Table>
+      </Table>
+    </div>
   );
 }

@@ -15,5 +15,6 @@ export default function LoadingState() {
 
       <Skeleton className="h-10 w-full" />
     </div>
+    
   );
 }

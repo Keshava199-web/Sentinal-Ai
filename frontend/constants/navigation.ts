@@ -2,7 +2,6 @@ import {
   Activity,
   Bell,
   LayoutDashboard,
-  Settings,
   ShieldAlert,
   Users,
 } from "lucide-react";
@@ -15,32 +14,27 @@ export const SIDEBAR_ITEMS = [
   },
   {
     label: "Incidents",
-    href: "/incidents",
+    href: "/dashboard/incidents",
     icon: ShieldAlert,
   },
   {
     label: "IOCs",
-    href: "/iocs",
+    href: "/dashboard/iocs",
     icon: Activity,
   },
   {
     label: "Alerts",
-    href: "/alerts",
+    href: "/dashboard/alerts",
     icon: Bell,
   },
   {
     label: "Timeline",
-    href: "/timeline",
+    href: "/dashboard/timeline",
     icon: Activity,
   },
   {
     label: "Users",
-    href: "/users",
+    href: "/dashboard/users",
     icon: Users,
-  },
-  {
-    label: "Settings",
-    href: "/settings",
-    icon: Settings,
   },
 ] as const;

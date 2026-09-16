@@ -13,6 +13,8 @@ export interface AuthUser {
 export interface LoginResponse {
   success: boolean;
   message: string;
-  token: string;
-  user: AuthUser;
+  data: {
+    token: string;
+    user: AuthUser;
+  };
 }

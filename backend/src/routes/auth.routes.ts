@@ -39,6 +39,7 @@ const router = Router();
  *                 example: analyst@sentinel-ai.com
  *               password:
  *                 type: string
+ * 
  *                 example: Admin@123
  *     responses:
  *       201:

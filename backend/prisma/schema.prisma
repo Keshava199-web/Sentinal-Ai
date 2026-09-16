@@ -14,47 +14,41 @@ model User {
   createdAt          DateTime           @default(now())
   role               Role               @default(VIEWER)
   updatedAt          DateTime           @updatedAt
+  alertsAssigned     Alert[]            @relation("AssignedAlerts")
   auditLogs          AuditLog[]         @relation("UserAuditLogs")
-  evidence           IncidentEvidence[]
   iocs               IOC[]              @relation("CreatedIOCs")
+  assignedIncidents  Incident[]         @relation("AssignedIncidents")
+  reportedIncidents  Incident[]         @relation("ReportedIncidents")
+  comments           IncidentComment[]
+  evidence           IncidentEvidence[]
   linkedIncidentIOCs IncidentIOC[]      @relation("LinkedIncidentIOCs")
-
-  timelineEntries IncidentTimeline[]
-
-  comments IncidentComment[]
-
-  assignedIncidents Incident[] @relation("AssignedIncidents")
-  reportedIncidents Incident[] @relation("ReportedIncidents")
-  assignedAlerts    Alert[]    @relation("AssignedAlerts")
+  timelineEntries    IncidentTimeline[]
 }
 
 model Incident {
-  id           String   @id @default(uuid())
-  title        String
-  description  String
-  sourceIp     String?
-  createdAt    DateTime @default(now())
-  assignedToId String?
-
-  timeline IncidentTimeline[]
-  comments IncidentComment[]
-  evidence IncidentEvidence[]
-  iocs     IncidentIOC[]
-
-  category        IncidentCategory @default(OTHER)
+  id              String             @id @default(uuid())
+  title           String
+  description     String
+  sourceIp        String?
+  createdAt       DateTime           @default(now())
+  assignedToId    String?
+  category        IncidentCategory   @default(OTHER)
   destinationIp   String?
-  detectionSource DetectionSource  @default(MANUAL)
+  detectionSource DetectionSource    @default(MANUAL)
   hostname        String?
   reporterId      String
   resolvedAt      DateTime?
-  updatedAt       DateTime         @updatedAt
-  severity        IncidentSeverity
-  status          IncidentStatus   @default(OPEN)
-  auditLogs       AuditLog[]       @relation("IncidentAuditLogs")
-  assignedTo      User?            @relation("AssignedIncidents", fields: [assignedToId], references: [id])
-  reporter        User             @relation("ReportedIncidents", fields: [reporterId], references: [id])
-
-  alerts Alert[]
+  updatedAt       DateTime           @updatedAt
+  status          IncidentStatus     @default(OPEN)
+  severity        AlertSeverity
+  alerts          Alert[]
+  auditLogs       AuditLog[]         @relation("IncidentAuditLogs")
+  assignedTo      User?              @relation("AssignedIncidents", fields: [assignedToId], references: [id])
+  reporter        User               @relation("ReportedIncidents", fields: [reporterId], references: [id])
+  comments        IncidentComment[]
+  evidence        IncidentEvidence[]
+  iocs            IncidentIOC[]
+  timeline        IncidentTimeline[]
 
   @@index([resolvedAt])
   @@index([severity])
@@ -89,9 +83,8 @@ model IncidentTimeline {
   description String
   metadata    Json?
   createdAt   DateTime       @default(now())
-
-  incident Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
-  user     User?    @relation(fields: [userId], references: [id])
+  incident    Incident       @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  user        User?          @relation(fields: [userId], references: [id])
 
   @@index([incidentId])
   @@index([createdAt])
@@ -100,19 +93,14 @@ model IncidentTimeline {
 }
 
 model IncidentComment {
-  id String @id @default(uuid())
-
+  id         String   @id @default(uuid())
   incidentId String
   userId     String
-
-  comment String
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  incident Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
-
-  user User @relation(fields: [userId], references: [id])
+  comment    String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  incident   Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id])
 
   @@index([incidentId])
   @@index([userId])
@@ -121,8 +109,7 @@ model IncidentComment {
 }
 
 model IncidentEvidence {
-  id String @id @default(uuid())
-
+  id           String   @id @default(uuid())
   incidentId   String
   uploadedById String
   fileName     String
@@ -132,9 +119,8 @@ model IncidentEvidence {
   storagePath  String
   sha256       String
   uploadedAt   DateTime @default(now())
-
-  incident   Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
-  uploadedBy User     @relation(fields: [uploadedById], references: [id])
+  incident     Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  uploadedBy   User     @relation(fields: [uploadedById], references: [id])
 
   @@index([incidentId])
   @@index([uploadedById])
@@ -143,36 +129,22 @@ model IncidentEvidence {
 }
 
 model IOC {
-  id String @id @default(uuid())
-
-  type  IOCType
-  value String  @db.Text
-
-  description String? @db.Text
-
-  severity IOCSeverity
-
-  confidence Int @default(50)
-
-  firstSeen DateTime?
-
-  lastSeen DateTime?
-
-  status IOCStatus @default(ACTIVE)
-
-  source IOCSource @default(MANUAL)
-
+  id          String        @id @default(uuid())
+  type        IOCType
+  value       String
+  description String?
+  severity    IOCSeverity
+  confidence  Int           @default(50)
+  firstSeen   DateTime?
+  lastSeen    DateTime?
+  status      IOCStatus     @default(ACTIVE)
+  source      IOCSource     @default(MANUAL)
   createdById String
-
-  createdAt DateTime @default(now())
-
-  updatedAt DateTime @updatedAt
-
-  createdBy User @relation("CreatedIOCs", fields: [createdById], references: [id])
-
-  incidents IncidentIOC[]
-
-  deletedAt DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  deletedAt   DateTime?
+  createdBy   User          @relation("CreatedIOCs", fields: [createdById], references: [id])
+  incidents   IncidentIOC[]
 
   @@unique([type, value, source])
   @@index([firstSeen])
@@ -190,20 +162,13 @@ model IOC {
 
 model IncidentIOC {
   incidentId String
-
-  iocId String
-
+  iocId      String
   linkedById String
-
-  createdAt DateTime @default(now())
-
-  incident Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
-
-  ioc IOC @relation(fields: [iocId], references: [id], onDelete: Cascade)
-
-  linkedBy User @relation("LinkedIncidentIOCs", fields: [linkedById], references: [id])
-
-  notes String? @db.Text
+  createdAt  DateTime @default(now())
+  notes      String?
+  incident   Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  ioc        IOC      @relation(fields: [iocId], references: [id], onDelete: Cascade)
+  linkedBy   User     @relation("LinkedIncidentIOCs", fields: [linkedById], references: [id])
 
   @@id([incidentId, iocId])
   @@index([iocId])
@@ -214,37 +179,31 @@ model IncidentIOC {
 }
 
 model Alert {
-  id String @id @default(uuid())
-
-  title       String
-  description String
-
-  severity AlertSeverity
-  status   AlertStatus   @default(NEW)
-  source   AlertSource
-
-  assignedToId String?
-  assignedTo   User?   @relation("AssignedAlerts", fields: [assignedToId], references: [id])
-
-  incidentId String?
-  incident   Incident? @relation(fields: [incidentId], references: [id])
-
-  rawEvent Json?
-  metadata Json?
-
+  id             String           @id @default(uuid())
+  title          String
+  description    String?
+  severity       IncidentSeverity
+  status         AlertStatus      @default(NEW)
+  source         DetectionSource
+  sourceEventId  String?
+  incidentId     String?
+  assignedToId   String?
   detectedAt     DateTime
   acknowledgedAt DateTime?
   resolvedAt     DateTime?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  assignedTo     User?            @relation("AssignedAlerts", fields: [assignedToId], references: [id])
+  incident       Incident?        @relation(fields: [incidentId], references: [id])
 
   @@index([status])
   @@index([severity])
   @@index([source])
-  @@index([assignedToId])
   @@index([incidentId])
+  @@index([assignedToId])
   @@index([detectedAt])
+  @@index([status, severity])
+  @@index([status, detectedAt])
 }
 
 enum Role {
@@ -261,6 +220,13 @@ enum IncidentSeverity {
   CRITICAL
 }
 
+enum AlertSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
 enum IncidentStatus {
   OPEN
   TRIAGED
@@ -268,6 +234,14 @@ enum IncidentStatus {
   CONTAINED
   ERADICATED
   RECOVERED
+  CLOSED
+}
+
+enum AlertStatus {
+  NEW
+  ACKNOWLEDGED
+  IN_PROGRESS
+  RESOLVED
   CLOSED
 }
 
@@ -316,12 +290,10 @@ enum TimelineAction {
   STATUS_CHANGED
   COMMENT_ADDED
   EVIDENCE_UPLOADED
-
-  IOC_LINKED
-  IOC_UNLINKED
-
   REOPENED
   CLOSED
+  IOC_LINKED
+  IOC_UNLINKED
 }
 
 enum IOCType {
@@ -361,30 +333,4 @@ enum IOCSource {
   SPLUNK
   AI_ENGINE
   OTHER
-}
-
-enum AlertSeverity {
-  LOW
-  MEDIUM
-  HIGH
-  CRITICAL
-}
-
-enum AlertStatus {
-  NEW
-  TRIAGED
-  INVESTIGATING
-  RESOLVED
-  CLOSED
-}
-
-enum AlertSource {
-  SIEM
-  EDR
-  FIREWALL
-  IDS
-  IPS
-  EMAIL
-  THREAT_INTEL
-  MANUAL
 }

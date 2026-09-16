@@ -14,15 +14,32 @@ export default function AuthGuard({
 }: AuthGuardProps) {
   const router = useRouter();
 
-  const isAuthenticated = useAuthStore(
-    (state) => state.isAuthenticated,
-  );
+  const isAuthenticated =
+    useAuthStore(
+      (state) => state.isAuthenticated,
+    );
+
+  const hasHydrated =
+    useAuthStore(
+      (state) => state.hasHydrated,
+    );
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (
+      hasHydrated &&
+      !isAuthenticated
+    ) {
       router.replace("/login");
     }
-  }, [isAuthenticated, router]);
+  }, [
+    hasHydrated,
+    isAuthenticated,
+    router,
+  ]);
+
+  if (!hasHydrated) {
+    return null;
+  }
 
   if (!isAuthenticated) {
     return null;

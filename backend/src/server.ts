@@ -12,6 +12,10 @@ import auditRoutes from "./routes/audit.routes";
 import swaggerUi from "swagger-ui-express";
 import swaggerSpec from "./config/swagger";
 import errorMiddleware from "./middleware/error.middleware";
+import incidentEvidenceRoutes from "./routes/incidentEvidence.routes";
+import iocRoutes from "./routes/ioc.routes";
+import alertRoutes from "./routes/alert.routes";
+import "./config/env";
 
 dotenv.config();
 
@@ -38,7 +42,7 @@ app.use(
         : "http://localhost:3000",
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     credentials: true,
-  }),
+  })
 );
 
 /**
@@ -47,7 +51,7 @@ app.use(
 app.use(
   helmet({
     crossOriginResourcePolicy: { policy: "cross-origin" },
-  }),
+  })
 );
 
 /**
@@ -65,9 +69,16 @@ app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 app.use("/health", healthRoutes);
 app.use("/auth", authRoutes);
 app.use("/incidents", incidentRoutes);
+app.use("/iocs", iocRoutes);
+app.use("/alerts", alertRoutes);
 app.use("/db-test", dbRoutes);
 app.use("/user", userRoutes);
 app.use("/audit", auditRoutes);
+
+app.use(
+  "/api/incidents",
+  incidentEvidenceRoutes,
+);
 
 /**
  * Swagger Doc
@@ -76,15 +87,15 @@ app.use(
   "/api-docs",
   swaggerUi.serve,
   swaggerUi.setup(swaggerSpec, {
-    explorer: true,
-    customSiteTitle: "Sentinel-AI Docs",
-    swaggerOptions: {
-      docExpansion: "list",
-      filter: true,
-      tagsSorter: "alpha",
-      operationsSorter: "alpha",
-    },
-  }),
+  explorer: true,
+  customSiteTitle: "Sentinel-AI Docs",
+  swaggerOptions: {
+    docExpansion: "list",
+    filter: true,
+    tagsSorter: "alpha",
+    operationsSorter: "alpha",
+  },
+})
 );
 /**
  * Health check route
@@ -97,9 +108,12 @@ app.get("/", (_req: Request, res: Response) => {
   });
 });
 
-app.get("/api-docs.json", (_, res) => {
-  res.json(swaggerSpec);
-});
+app.get(
+  "/api-docs.json",
+  (_, res) => {
+    res.json(swaggerSpec);
+  }
+);
 
 /**
  * 404 handler
@@ -114,14 +128,26 @@ app.use((_req: Request, res: Response) => {
 /**
  * Global error handler
  */
-app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
-  console.error("[ERROR]", err.message);
+app.use(
+  (
+    err: Error,
+    _req: Request,
+    res: Response,
+    _next: NextFunction
+  ) => {
+    console.error("[ERROR]", err.message);
 
-  res.status(500).json({
-    success: false,
-    message: NODE_ENV === "production" ? "Internal Server Error" : err.message,
-  });
-});
+    res.status(500).json({
+      success: false,
+      message:
+        NODE_ENV === "production"
+          ? "Internal Server Error"
+          : err.message,
+    });
+  }
+);
+
+app.use(errorMiddleware);
 
 /**
  * Start server
@@ -130,4 +156,35 @@ app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
 
-app.use(errorMiddleware);
+app.use(
+  "/api/incidents",
+  incidentEvidenceRoutes,
+);
+
+
+//                      Sentinel-AI
+//         AI-Powered Security Operations Center
+
+//                   ┌──────────────────────┐
+//                   │    Next.js Frontend  │
+//                   └──────────┬───────────┘
+//                              │
+//                     REST API + WebSocket
+//                              │
+//                   ┌──────────▼───────────┐
+//                   │  Express Backend     │
+//                   └──────────┬───────────┘
+//                              │
+//               ┌──────────────┬──────────────┬
+//               ▼              ▼              ▼
+//          Incident       Threat Intel      AI Engine
+//               │              │              │
+//               ├──── Timeline ───────────────┤
+//               ├──── Comments ───────────────┤
+//               ├──── Evidence ───────────────┤
+//               ├──── IOC ────────────────────┤
+//               └──── Audit Logs ─────────────┘
+//                              │
+//                      PostgreSQL (Prisma)
+//                              │
+//                 AWS S3 / Local Evidence Storage

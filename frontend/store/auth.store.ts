@@ -14,6 +14,10 @@ interface AuthState {
   user: AuthUser | null;
   isAuthenticated: boolean;
 
+  hasHydrated: boolean;
+
+  setHasHydrated: (value: boolean) => void;
+
   loginUser: (
     credentials: LoginRequest,
   ) => Promise<void>;
@@ -29,15 +33,18 @@ export const useAuthStore =
         user: null,
         isAuthenticated: false,
 
-        loginUser: async (
-          credentials,
-        ) => {
+        hasHydrated: false,
+
+        setHasHydrated: (value) =>
+          set({ hasHydrated: value }),
+
+        loginUser: async (credentials) => {
           const response =
             await login(credentials);
 
           set({
-            token: response.token,
-            user: response.user,
+            token: response.data.token,
+            user: response.data.user,
             isAuthenticated: true,
           });
         },
@@ -51,6 +58,10 @@ export const useAuthStore =
       }),
       {
         name: "sentinel-auth",
+
+        onRehydrateStorage: () => (state) => {
+          state?.setHasHydrated(true);
+        },
       },
     ),
   );

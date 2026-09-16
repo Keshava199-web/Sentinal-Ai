@@ -55,7 +55,7 @@ export const getIOCByIdRepository = async (
   id: string,
   tx: PrismaExecutor = db,
 ) => {
-  return tx.iOC.findUnique({
+  return tx.iOC.findFirst({
     where: {
       id,
       deletedAt: null,
